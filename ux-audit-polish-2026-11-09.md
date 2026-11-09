@@ -64,3 +64,9 @@ Applied the restrained champagne accent to focus, the fee control, and followed-
 Desktop discovery can collapse and the chart can expand, with Escape restoring the workspace. The strategy action stays visible while desktop composer fields scroll. Arbitrary pane dragging remains a parity gap.
 
 Verification: TypeScript/Vite production build; Playwright keyboard, pointer, bin math, histogram/chart linkage, OHLC aggregation, balance conservation, create/join/exit, profile, navigation, responsive widths 320/390/768/1024/1440, landing scroll and reduced motion. New follow/share/deep-link, collapse/expand/Escape, data table, skip-link, and 44px mobile control checks passed. Axe-core found no violations under WCAG 2 A/AA and 2.1 AA rule tags in the terminal with chart table open, social strategies, portfolio, profile, mobile composer, sign-up, and landing states. This automated result does not establish complete accessibility conformance.
+
+## Color and density refinement
+
+Following user feedback, replaced the champagne/yellow accent with orange (`#ff9b62`). Primary landing, wallet, workspace, and sign-up buttons now share a lavender → purple → blue gradient, replacing the landing button's saturated blue/magenta treatment. Shared CSS tokens keep normal and hover states aligned. Computed text contrast across sampled gradient segments is at least 7.04:1 normally and 8.51:1 on hover.
+
+Tightened discovery-card padding and creator-row spacing, removed redundant internal dividers, and made Copy link a quiet secondary action. Reduced desktop composer gaps while retaining mobile touch sizes. Re-ran the production build, existing interaction/responsive regressions, and the seven-state accessibility check successfully. Updated product previews to match the revised interface.

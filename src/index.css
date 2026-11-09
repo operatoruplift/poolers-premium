@@ -6,6 +6,23 @@
   --color-brand-gray: #1a1a1a;
 }
 
+:root {
+  --poolers-orange: #ff9b62;
+  --poolers-primary: linear-gradient(
+    110deg,
+    #c5b2ff 0%,
+    #a996f6 48%,
+    #7fa7fb 100%
+  );
+  --poolers-primary-hover: linear-gradient(
+    110deg,
+    #d0c1ff 0%,
+    #baa8ff 48%,
+    #92b7ff 100%
+  );
+  --poolers-primary-ink: #19162b;
+}
+
 @layer base {
   body {
     @apply font-sans bg-black text-white antialiased;
@@ -27,7 +44,7 @@
   button:focus-visible,
   a:focus-visible,
   select:focus-visible {
-    outline: 2px solid #edc985;
+    outline: 2px solid var(--poolers-orange);
     outline-offset: 5px;
   }
   html {
@@ -116,8 +133,8 @@
   align-items: center;
   gap: 12px;
   border-radius: 12px;
-  background: white;
-  color: black;
+  background: var(--poolers-primary);
+  color: var(--poolers-primary-ink);
   font-size: 13px;
   font-weight: 600;
   transition:
@@ -125,7 +142,7 @@
     transform 0.2s;
 }
 .signup-submit:hover {
-  background: #e9e1ff;
+  background: var(--poolers-primary-hover);
 }
 .signup-submit:active {
   transform: scale(0.98);
@@ -419,7 +436,7 @@
 .pt-app input:focus-visible,
 .pt-app select:focus-visible,
 .pt-app textarea:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 3px;
 }
 .positive {
@@ -513,8 +530,8 @@
   gap: 8px;
   min-height: 36px;
   padding: 8px 14px;
-  background: #b099ef;
-  color: #211936;
+  background: var(--poolers-primary);
+  color: var(--poolers-primary-ink);
   border: 1px solid transparent;
   border-radius: 7px;
   font-weight: 500 !important;
@@ -522,7 +539,7 @@
   white-space: nowrap;
 }
 .pt-wallet-button:hover {
-  background: #c1acf5;
+  background: var(--poolers-primary-hover);
 }
 .pt-avatar {
   width: 32px;
@@ -1364,8 +1381,8 @@
   justify-content: center;
   gap: 10px;
   border: 1px solid transparent;
-  background: #af96ec;
-  color: #211a30;
+  background: var(--poolers-primary);
+  color: var(--poolers-primary-ink);
   border-radius: 7px;
   font-weight: 500 !important;
   font-size: 12px !important;
@@ -1373,7 +1390,7 @@
   padding: 10px 16px;
 }
 .pt-primary:hover:not(:disabled) {
-  background: #c1aaf1;
+  background: var(--poolers-primary-hover);
 }
 .pt-create-button {
   width: 100%;
@@ -1725,7 +1742,7 @@
 .pt-dialog button:focus-visible,
 .pt-dialog input:focus-visible,
 .pt-dialog textarea:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 3px;
 }
 .pt-dialog button:disabled {
@@ -2696,7 +2713,7 @@
   outline: none;
 }
 .bin-range-handle:focus-visible .bin-range-handle-knob {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 3px;
 }
 .bin-range-axis {
@@ -2764,7 +2781,7 @@
   cursor: not-allowed;
 }
 .bin-price-input-row > button:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 2px;
 }
 .bin-price-input-row > input {
@@ -2784,7 +2801,7 @@
   border-radius: 3px;
 }
 .bin-price-input-row > input:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 1px;
 }
 .bin-price-change {
@@ -2857,7 +2874,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: #b19460;
+  background: #cf7e4e;
   border-radius: 8px 0 0 8px;
   pointer-events: none;
 }
@@ -2867,7 +2884,7 @@
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
-  background: #edc985;
+  background: var(--poolers-orange);
   border: 2px solid #eeeef2;
   border-radius: 50%;
   box-shadow: none;
@@ -2890,11 +2907,11 @@
   outline: none;
 }
 .fee-slider:focus-visible .fee-slider-thumb {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 3px;
 }
 .fee-slider.is-dragging .fee-slider-thumb {
-  background: #f3d9a9;
+  background: #ffb381;
 }
 .fee-slider-labels {
   display: flex;
@@ -3040,7 +3057,7 @@
     opacity 0.18s;
 }
 .pl-home button:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 5px;
 }
 .pl-nav {
@@ -3099,8 +3116,8 @@
   gap: 12px;
   min-height: 46px;
   padding: 12px 24px;
-  color: white;
-  background: linear-gradient(105deg, #075fff, #7141ff 58%, #bd13e5);
+  color: var(--poolers-primary-ink);
+  background: var(--poolers-primary);
   border: 1px solid #ffffff14;
   border-radius: 12px;
   font-size: 13px !important;
@@ -3108,7 +3125,7 @@
   line-height: 1.2;
 }
 .pl-launch:hover {
-  background: linear-gradient(105deg, #1d70ff, #8152ff 58%, #c42cef);
+  background: var(--poolers-primary-hover);
   border-color: #ffffff30;
 }
 .pl-launch:active {
@@ -4077,10 +4094,7 @@
   }
 }
 
-/* A restrained social layer: warm interaction cues, quiet graphite cards. */
-.pt-app {
-  --warm: #edc985;
-}
+/* Orange interaction cues and quiet graphite cards. */
 .signup .text-white\/40,
 .signup .text-white\/30,
 .signup-login,
@@ -4104,7 +4118,7 @@
   z-index: 100;
   padding: 12px 20px;
   border-radius: 10px;
-  background: #edc985;
+  background: var(--poolers-orange);
   color: #201a13;
   font-size: 14px;
   font-weight: 600;
@@ -4127,7 +4141,7 @@
 .pt-global-search:focus-within,
 .pt-amount-box:focus-within,
 .pt-discover-search:focus-within {
-  border-color: #b39564;
+  border-color: #d58b61;
 }
 .pt-icon-button,
 .pt-chart-settings select,
@@ -4196,7 +4210,7 @@
   padding: 8px 0;
 }
 .pt-curated-list > article {
-  padding: 12px;
+  padding: 10px;
   margin-bottom: 8px;
   border: 1px solid #2c2b35;
   background: #1a1a21;
@@ -4229,8 +4243,7 @@
 }
 .pt-strategy-card .pt-social-actions {
   grid-column: 1 / -1;
-  padding-top: 10px;
-  border-top: 1px solid #2b2b35;
+  padding-top: 8px;
 }
 .pt-social-actions > button,
 .pt-follow-button {
@@ -4249,9 +4262,18 @@
 }
 .pt-social-actions > button:hover,
 .pt-follow-button:hover {
-  background: #302c29;
-  border-color: #6c5d46;
-  color: #f1d5a1;
+  background: #30251f;
+  border-color: #80553e;
+  color: #ffb78f;
+}
+.pt-social-actions > button:last-child {
+  background: transparent;
+  border-color: transparent;
+  color: #b4b1c3;
+}
+.pt-social-actions > button:last-child:hover {
+  background: #24242d;
+  color: #e3def0;
 }
 .pt-social-actions > span {
   display: inline-flex;
@@ -4262,17 +4284,16 @@
 }
 .pt-follow-button[aria-pressed="true"],
 .pt-social-actions > button[aria-pressed="true"] {
-  background: #332c22;
-  border-color: #6c5d46;
-  color: #edc985;
+  background: #30231d;
+  border-color: #80553e;
+  color: var(--poolers-orange);
 }
 .pt-discovery-person {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #2d2c34;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
 }
 .pt-discovery-person > button:first-child {
   display: flex;
@@ -4297,7 +4318,7 @@
   text-overflow: ellipsis;
 }
 .pt-discovery-person .pt-follow-button {
-  font-size: 10px !important;
+  font-size: 11px !important;
   padding: 6px 8px;
 }
 .pt-chart-tools {
@@ -4312,6 +4333,15 @@
   margin-top: 0;
 }
 @media (min-width: 901px) {
+  .pt-composer .pt-field-heading {
+    margin-top: 16px;
+  }
+  .pt-composer > .pt-line-tabs {
+    margin-bottom: 16px;
+  }
+  .pt-composer .bin-price-field {
+    padding-block: 8px;
+  }
   .pt-composer {
     display: flex;
     flex-direction: column;
@@ -4349,10 +4379,10 @@
 }
 .bin-range-handle:hover .bin-range-handle-knob,
 .bin-range-handle.is-dragging .bin-range-handle-knob {
-  border-color: #edc985;
+  border-color: var(--poolers-orange);
 }
 .fee-slider-thumb {
-  border-color: #fae4bb;
+  border-color: #ffd0b4;
 }
 .pt-chart-data {
   margin: 2px 0 12px;
@@ -4383,7 +4413,7 @@
   color: #b5b5c3;
 }
 .pt-chart-data > summary:focus-visible {
-  outline: 2px solid #edc985;
+  outline: 2px solid var(--poolers-orange);
   outline-offset: 3px;
 }
 .pt-chart-data > div {
@@ -4416,7 +4446,7 @@
 }
 .pl-section-heading > span,
 .pl-protocol-steps > article > span {
-  color: #edc985;
+  color: var(--poolers-orange);
 }
 .pl-section-heading p,
 .pl-protocol-steps p,

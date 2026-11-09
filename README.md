@@ -46,6 +46,8 @@ The local wallet, position actions, funding controls, follows, and profile chang
 
 The purple P is rendered as an inline vector in the interface. The matching standalone asset is `public/poolers-mark.svg`.
 
+Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Orange marks focus and active social controls; secondary actions stay neutral.
+
 ## Review and attribution
 
 The design pass used [UX Audit by paulunemoon](https://github.com/paulunemoon/ux-audit-skill) and [Unslop by Damir Sokolovsky](https://github.com/heydamir/unslop). Unslop is licensed under CC BY 4.0; this credit is retained for the applied workflow. Evidence, prioritized changes, and the remaining original-app differences are recorded in `ux-audit-terminal-2026-11-08.md` and `ux-audit-polish-2026-11-09.md`.
