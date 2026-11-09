@@ -54,6 +54,10 @@ import {
   Menu,
   Plus,
   Minus,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   ShieldCheck,
   Sparkles,
@@ -668,6 +672,9 @@ function PoolersHome({ onSignUp }: { onSignUp: () => void }) {
 
   return (
     <div className="pl-home" data-reduced-motion={reducedMotion || undefined}>
+      <a className="skip-link" href="#landing-content">
+        Skip to content
+      </a>
       <nav ref={nav} className="pl-nav" aria-label="Main navigation">
         <button
           className="pl-brand"
@@ -719,262 +726,265 @@ function PoolersHome({ onSignUp }: { onSignUp: () => void }) {
         )}
       </nav>
 
-      <section
-        ref={opening}
-        className="pl-opening"
-        aria-label="Poolers liquidity workspace"
-      >
-        <div className="pl-sticky-stage">
-          <div className="pl-stage-dots" aria-hidden="true" />
-          <div className="pl-edge-light pl-edge-blue" aria-hidden="true" />
-          <div className="pl-edge-light pl-edge-violet" aria-hidden="true" />
-          <motion.div
-            className="pl-hero-copy"
-            style={
-              reducedMotion
-                ? undefined
-                : { opacity: copyOpacity, y: copyY, scale: copyScale }
-            }
-          >
-            <div
-              className="pl-token-marks"
-              aria-label="Solana liquidity markets"
+      <main id="landing-content" tabIndex={-1}>
+        <section
+          ref={opening}
+          className="pl-opening"
+          aria-label="Poolers liquidity workspace"
+        >
+          <div className="pl-sticky-stage">
+            <div className="pl-stage-dots" aria-hidden="true" />
+            <div className="pl-edge-light pl-edge-blue" aria-hidden="true" />
+            <div className="pl-edge-light pl-edge-violet" aria-hidden="true" />
+            <motion.div
+              className="pl-hero-copy"
+              style={
+                reducedMotion
+                  ? undefined
+                  : { opacity: copyOpacity, y: copyY, scale: copyScale }
+              }
             >
-              {[
-                { name: "Solana", src: "/tokens/sol.png" },
-                { name: "USD Coin", src: "/tokens/usdc.png" },
-                { name: "Jupiter", src: "/tokens/jup.png" },
-                { name: "Raydium", src: "/tokens/ray.png" },
-                { name: "Jito", src: "/tokens/jitosol.png" },
-              ].map((token) => (
-                <img
-                  key={token.name}
-                  src={token.src}
-                  alt={token.name}
-                  width="34"
-                  height="34"
-                />
+              <div
+                className="pl-token-marks"
+                aria-label="Solana liquidity markets"
+              >
+                {[
+                  { name: "Solana", src: "/tokens/sol.png" },
+                  { name: "USD Coin", src: "/tokens/usdc.png" },
+                  { name: "Jupiter", src: "/tokens/jup.png" },
+                  { name: "Raydium", src: "/tokens/ray.png" },
+                  { name: "Jito", src: "/tokens/jitosol.png" },
+                ].map((token) => (
+                  <img
+                    key={token.name}
+                    src={token.src}
+                    alt={token.name}
+                    width="34"
+                    height="34"
+                  />
+                ))}
+              </div>
+              <h1>Everyone is an LP</h1>
+              <p>
+                Discover Solana pools, set your range,
+                <br />
+                and follow the strategies behind the liquidity.
+              </p>
+              <button className="pl-launch pl-hero-launch" onClick={onSignUp}>
+                Open app <ArrowUpRight size={18} />
+              </button>
+            </motion.div>
+            <motion.div
+              className="pl-product-window"
+              style={
+                reducedMotion
+                  ? undefined
+                  : { y: windowY, scale: windowScale, opacity: windowOpacity }
+              }
+            >
+              <button
+                className="pl-workspace-link"
+                onClick={onSignUp}
+                aria-label="Open interactive Poolers workspace"
+              >
+                <picture>
+                  <source
+                    media="(max-width:700px)"
+                    srcSet="/terminal-preview-mobile.png"
+                  />
+                  <img
+                    src="/terminal-preview.png"
+                    alt="Poolers workspace with pool discovery, market chart, strategies, and price-range controls"
+                    width="1440"
+                    height="1000"
+                  />
+                </picture>
+                <span className="pl-window-action">
+                  Open workspace <ArrowUpRight size={16} />
+                </span>
+              </button>
+            </motion.div>
+            <motion.button
+              className="pl-scroll-hint"
+              onClick={showWorkspace}
+              style={reducedMotion ? undefined : { opacity: scrollHintOpacity }}
+            >
+              Explore the workspace <ChevronDown size={19} />
+            </motion.button>
+          </div>
+        </section>
+
+        <section className="pl-protocol pl-content-section" id="protocol">
+          <div className="pl-section-heading">
+            <span>01 / Protocol</span>
+            <h2>
+              Pools, ranges,
+              <br />
+              and positions.
+            </h2>
+            <p>
+              The controls an LP needs,
+              <br />
+              in one workspace.
+            </p>
+          </div>
+          <div className="pl-protocol-steps">
+            <article>
+              <span>01</span>
+              <div>
+                <h3>Choose a pool</h3>
+                <p>
+                  Compare liquidity, volume, and fee tiers across Solana
+                  markets.
+                </p>
+              </div>
+              <ArrowUpRight size={18} />
+            </article>
+            <article>
+              <span>02</span>
+              <div>
+                <h3>Set your range</h3>
+                <p>Choose your price boundaries and liquidity distribution.</p>
+              </div>
+              <ArrowUpRight size={18} />
+            </article>
+            <article>
+              <span>03</span>
+              <div>
+                <h3>Manage your position</h3>
+                <p>
+                  Track fees, join strategies, or close a position from your
+                  portfolio.
+                </p>
+              </div>
+              <ArrowUpRight size={18} />
+            </article>
+          </div>
+        </section>
+
+        <section className="pl-strategies pl-content-section" id="strategies">
+          <div className="pl-section-heading">
+            <span>02 / Strategies</span>
+            <h2>
+              Set the shape
+              <br />
+              of your liquidity.
+            </h2>
+            <p>
+              Uniform, concentrated, or weighted
+              <br />
+              toward the edges. The range is yours.
+            </p>
+            <button className="pl-text-link" onClick={onSignUp}>
+              Explore strategies <ArrowUpRight size={16} />
+            </button>
+          </div>
+          <div className="pl-distribution-panel">
+            <div className="pl-distribution-pair">
+              <span>
+                <img src="/tokens/sol.png" alt="" width="32" height="32" />
+                <img src="/tokens/usdc.png" alt="" width="32" height="32" />
+              </span>
+              <div>
+                <strong>SOL / USDC</strong>
+                <span>Liquidity distribution</span>
+              </div>
+            </div>
+            <div
+              className="pl-distribution-tabs"
+              aria-label="Liquidity distribution"
+            >
+              {["Spot", "Curve", "Bid Ask"].map((shape) => (
+                <button
+                  key={shape}
+                  className={distribution === shape ? "active" : ""}
+                  aria-pressed={distribution === shape}
+                  onClick={() => setDistribution(shape)}
+                >
+                  {shape}
+                </button>
               ))}
             </div>
-            <h1>Everyone is an LP</h1>
-            <p>
-              Discover Solana pools, set your range,
-              <br />
-              and follow the strategies behind the liquidity.
-            </p>
-            <button className="pl-launch pl-hero-launch" onClick={onSignUp}>
-              Open app <ArrowUpRight size={18} />
-            </button>
-          </motion.div>
-          <motion.div
-            className="pl-product-window"
-            style={
-              reducedMotion
-                ? undefined
-                : { y: windowY, scale: windowScale, opacity: windowOpacity }
-            }
-          >
-            <button
-              className="pl-workspace-link"
-              onClick={onSignUp}
-              aria-label="Open interactive Poolers workspace"
+            <div
+              className="pl-distribution-chart"
+              role="img"
+              aria-label={`${distribution} liquidity distribution`}
             >
-              <picture>
-                <source
-                  media="(max-width:700px)"
-                  srcSet="/terminal-preview-mobile.png"
-                />
-                <img
-                  src="/terminal-preview.png"
-                  alt="Poolers workspace with pool discovery, market chart, strategies, and price-range controls"
-                  width="1440"
-                  height="1000"
-                />
-              </picture>
-              <span className="pl-window-action">
-                Open workspace <ArrowUpRight size={16} />
-              </span>
-            </button>
-          </motion.div>
-          <motion.button
-            className="pl-scroll-hint"
-            onClick={showWorkspace}
-            style={reducedMotion ? undefined : { opacity: scrollHintOpacity }}
-          >
-            Explore the workspace <ChevronDown size={19} />
-          </motion.button>
-        </div>
-      </section>
-
-      <section className="pl-protocol pl-content-section" id="protocol">
-        <div className="pl-section-heading">
-          <span>01 / Protocol</span>
-          <h2>
-            Pools, ranges,
-            <br />
-            and positions.
-          </h2>
-          <p>
-            The controls an LP needs,
-            <br />
-            in one workspace.
-          </p>
-        </div>
-        <div className="pl-protocol-steps">
-          <article>
-            <span>01</span>
-            <div>
-              <h3>Choose a pool</h3>
-              <p>
-                Compare liquidity, volume, and fee tiers across Solana markets.
-              </p>
+              {Array.from({ length: 46 }, (_, index) => {
+                const distance = Math.abs((index - 22.5) / 22.5);
+                const height =
+                  distribution === "Spot"
+                    ? 72
+                    : distribution === "Curve"
+                      ? Math.max(8, 82 * (1 - distance))
+                      : Math.max(8, 82 * distance);
+                return (
+                  <span
+                    key={index}
+                    style={{
+                      height: `${height}%`,
+                      background: index < 23 ? "#2576ed" : "#9b54e8",
+                    }}
+                  />
+                );
+              })}
+              <i />
             </div>
-            <ArrowUpRight size={18} />
-          </article>
-          <article>
-            <span>02</span>
-            <div>
-              <h3>Set your range</h3>
-              <p>Choose your price boundaries and liquidity distribution.</p>
+            <div className="pl-distribution-axis">
+              <span>Lower price</span>
+              <span>Pool price</span>
+              <span>Higher price</span>
             </div>
-            <ArrowUpRight size={18} />
-          </article>
-          <article>
-            <span>03</span>
-            <div>
-              <h3>Manage your position</h3>
-              <p>
-                Track fees, join strategies, or close a position from your
-                portfolio.
-              </p>
-            </div>
-            <ArrowUpRight size={18} />
-          </article>
-        </div>
-      </section>
-
-      <section className="pl-strategies pl-content-section" id="strategies">
-        <div className="pl-section-heading">
-          <span>02 / Strategies</span>
-          <h2>
-            Set the shape
-            <br />
-            of your liquidity.
-          </h2>
-          <p>
-            Uniform, concentrated, or weighted
-            <br />
-            toward the edges. The range is yours.
-          </p>
-          <button className="pl-text-link" onClick={onSignUp}>
-            Explore strategies <ArrowUpRight size={16} />
-          </button>
-        </div>
-        <div className="pl-distribution-panel">
-          <div className="pl-distribution-pair">
-            <span>
-              <img src="/tokens/sol.png" alt="" width="32" height="32" />
-              <img src="/tokens/usdc.png" alt="" width="32" height="32" />
-            </span>
-            <div>
-              <strong>SOL / USDC</strong>
-              <span>Liquidity distribution</span>
+            <div className="pl-distribution-description">
+              {distribution === "Spot"
+                ? "Equal liquidity across the selected range."
+                : distribution === "Curve"
+                  ? "More liquidity near the current pool price."
+                  : "More liquidity toward the range boundaries."}
             </div>
           </div>
-          <div
-            className="pl-distribution-tabs"
-            aria-label="Liquidity distribution"
-          >
-            {["Spot", "Curve", "Bid Ask"].map((shape) => (
-              <button
-                key={shape}
-                className={distribution === shape ? "active" : ""}
-                aria-pressed={distribution === shape}
-                onClick={() => setDistribution(shape)}
+        </section>
+
+        <section className="pl-faqs pl-content-section" id="faqs">
+          <div className="pl-section-heading">
+            <span>03 / FAQs</span>
+            <h2>Before you pool.</h2>
+          </div>
+          <div className="pl-faq-list">
+            {questions.map(([question, answer], index) => (
+              <article
+                className={openFaq === index ? "active" : ""}
+                key={question}
               >
-                {shape}
-              </button>
+                <button
+                  aria-expanded={openFaq === index}
+                  aria-controls={`pl-answer-${index}`}
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                >
+                  {question}
+                  <Plus size={18} />
+                </button>
+                <div
+                  className="pl-faq-answer"
+                  id={`pl-answer-${index}`}
+                  inert={openFaq !== index}
+                >
+                  <div>
+                    <p>{answer}</p>
+                  </div>
+                </div>
+              </article>
             ))}
           </div>
-          <div
-            className="pl-distribution-chart"
-            role="img"
-            aria-label={`${distribution} liquidity distribution`}
-          >
-            {Array.from({ length: 46 }, (_, index) => {
-              const distance = Math.abs((index - 22.5) / 22.5);
-              const height =
-                distribution === "Spot"
-                  ? 72
-                  : distribution === "Curve"
-                    ? Math.max(8, 82 * (1 - distance))
-                    : Math.max(8, 82 * distance);
-              return (
-                <span
-                  key={index}
-                  style={{
-                    height: `${height}%`,
-                    background: index < 23 ? "#2576ed" : "#9b54e8",
-                  }}
-                />
-              );
-            })}
-            <i />
-          </div>
-          <div className="pl-distribution-axis">
-            <span>Lower price</span>
-            <span>Pool price</span>
-            <span>Higher price</span>
-          </div>
-          <div className="pl-distribution-description">
-            {distribution === "Spot"
-              ? "Equal liquidity across the selected range."
-              : distribution === "Curve"
-                ? "More liquidity near the current pool price."
-                : "More liquidity toward the range boundaries."}
-          </div>
-        </div>
-      </section>
-
-      <section className="pl-faqs pl-content-section" id="faqs">
-        <div className="pl-section-heading">
-          <span>03 / FAQs</span>
-          <h2>Before you pool.</h2>
-        </div>
-        <div className="pl-faq-list">
-          {questions.map(([question, answer], index) => (
-            <article
-              className={openFaq === index ? "active" : ""}
-              key={question}
-            >
-              <button
-                aria-expanded={openFaq === index}
-                aria-controls={`pl-answer-${index}`}
-                onClick={() => setOpenFaq(openFaq === index ? null : index)}
-              >
-                {question}
-                <Plus size={18} />
-              </button>
-              <div
-                className="pl-faq-answer"
-                id={`pl-answer-${index}`}
-                inert={openFaq !== index}
-              >
-                <div>
-                  <p>{answer}</p>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="pl-final-cta">
-        <BrandMark size={50} />
-        <h2>Find your pool.</h2>
-        <button className="pl-launch" onClick={onSignUp}>
-          Open app <ArrowUpRight size={17} />
-        </button>
-      </section>
+        </section>
+        <section className="pl-final-cta">
+          <BrandMark size={50} />
+          <h2>Find your pool.</h2>
+          <button className="pl-launch" onClick={onSignUp}>
+            Open app <ArrowUpRight size={17} />
+          </button>
+        </section>
+      </main>
       <footer className="pl-footer">
         <span>© {new Date().getFullYear()} Poolers</span>
         <div>
@@ -1179,6 +1189,21 @@ type TerminalModal =
   | { kind: "fund"; direction: "Deposit" | "Withdraw" }
   | { kind: "exit"; id: string };
 
+function strategyFromLocation() {
+  const id = window.location.pathname.split("/strategy/")[1];
+  return STRATEGIES.find((strategy) => strategy.id === id);
+}
+
+function poolFromLocation() {
+  const address = window.location.pathname.split("/pools/")[1];
+  const id = new URLSearchParams(window.location.search).get("pool");
+  return (
+    strategyFromLocation()?.poolId ||
+    MARKETS.find((pool) => pool.address === address || pool.id === id)?.id ||
+    "stonk-sol"
+  );
+}
+
 function PoolersTerminal({
   onHome,
   onOnboarding,
@@ -1194,8 +1219,8 @@ function PoolersTerminal({
         ? "profile"
         : "terminal",
   );
-  const [selectedId, setSelectedId] = useState("stonk-sol");
-  const [discovery, setDiscovery] = useState("Pools");
+  const [selectedId, setSelectedId] = useState(poolFromLocation);
+  const [discovery, setDiscovery] = useState("Strategies");
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [timeframe, setTimeframe] = useState("5m");
@@ -1213,7 +1238,10 @@ function PoolersTerminal({
   const [chartUnit, setChartUnit] = useState("Price");
   const [chartReset, setChartReset] = useState(0);
   const [creatorFee, setCreatorFee] = useState(10);
-  const [modal, setModal] = useState<TerminalModal>(null);
+  const [modal, setModal] = useState<TerminalModal>(() => {
+    const strategy = strategyFromLocation();
+    return strategy ? { kind: "join", strategy } : null;
+  });
   const [modalAmount, setModalAmount] = useState("250");
   const [editName, setEditName] = useState("");
   const [editHandle, setEditHandle] = useState("");
@@ -1221,6 +1249,8 @@ function PoolersTerminal({
   const [toast, setToast] = useState("");
   const [mobilePanel, setMobilePanel] = useState("Market");
   const [positionFilter, setPositionFilter] = useState("All");
+  const [discoveryCollapsed, setDiscoveryCollapsed] = useState(false);
+  const [chartExpanded, setChartExpanded] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const pendingWalletAction = useRef<TerminalModal>(null);
   const pool = MARKETS.find((item) => item.id === selectedId)!;
@@ -1230,10 +1260,11 @@ function PoolersTerminal({
   const maxRange = Number(
     ((Math.pow(1 + pool.binStep / 10000, upperBin) - 1) * 100).toFixed(2),
   );
+  const searchQuery = query.trim().replace(/^@/, "").toLowerCase();
   const filteredPools = MARKETS.filter(
     (item) =>
       (category === "All" || item.category === category) &&
-      `${item.pair} ${item.symbol}`.toLowerCase().includes(query.toLowerCase()),
+      `${item.pair} ${item.symbol}`.toLowerCase().includes(searchQuery),
   );
   const activePositions = workspace.positions.filter(
     (position) => position.status === "active",
@@ -1264,6 +1295,11 @@ function PoolersTerminal({
   const selectedStrategies = STRATEGIES.filter(
     (strategy) => strategy.poolId === selectedId,
   );
+  const filteredStrategies = STRATEGIES.filter((strategy) =>
+    `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
+      .toLowerCase()
+      .includes(searchQuery),
+  );
   const modalValue = Number(modalAmount);
   const modalValueValid =
     modalAmount.trim() !== "" &&
@@ -1287,6 +1323,8 @@ function PoolersTerminal({
   }, [toast]);
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("dialog[open]"))
+        setChartExpanded(false);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         searchRef.current?.focus();
@@ -1295,13 +1333,45 @@ function PoolersTerminal({
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
   }, []);
+  useEffect(() => {
+    const sync = () => {
+      setSelectedId(poolFromLocation());
+      setView(
+        window.location.pathname.includes("portfolio")
+          ? "portfolio"
+          : window.location.pathname.endsWith("/profile")
+            ? "profile"
+            : "terminal",
+      );
+      setMobilePanel("Market");
+      const strategy = strategyFromLocation();
+      setModal(strategy ? { kind: "join", strategy } : null);
+    };
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
   const notify = (message: string) => setToast(message);
   const selectPool = (id: string) => {
+    const selectedPool = MARKETS.find((item) => item.id === id);
+    if (!selectedPool) return;
+    window.history.pushState({}, "", `/pools/${selectedPool.address}`);
     setSelectedId(id);
     setActivityTab("Strategies");
     setView("terminal");
     setMarketTab("Chart");
     setMobilePanel("Market");
+  };
+  const copyStrategyLink = async (strategy: PoolStrategy) => {
+    const link = new URL(`/strategy/${strategy.id}`, window.location.origin)
+      .href;
+    try {
+      await navigator.clipboard.writeText(link);
+      notify("Strategy link copied");
+    } catch {
+      notify("Copy this strategy’s address from the browser bar");
+      window.history.pushState({}, "", `/strategy/${strategy.id}`);
+      setSelectedId(strategy.poolId);
+    }
   };
   const connectLocalWallet = () => {
     setWorkspace((current) => ({ ...current, connected: true }));
@@ -1517,6 +1587,9 @@ function PoolersTerminal({
   };
   return (
     <div className="pt-app">
+      <a className="skip-link" href="#workspace-content">
+        Skip to workspace
+      </a>
       <header className="pt-topbar">
         <button className="pt-brand" onClick={onHome} aria-label="Poolers home">
           <BrandMark size={32} />
@@ -1529,23 +1602,34 @@ function PoolersTerminal({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
+              setDiscovery(
+                CREATORS.some(
+                  (creator) =>
+                    creator.includes(event.target.value.toLowerCase()) &&
+                    event.target.value.length > 1,
+                )
+                  ? "Strategies"
+                  : "Pools",
+              );
               setView("terminal");
               setMobilePanel("Discover");
             }}
             placeholder="Pools, tokens, creators"
-            aria-label="Search all pools"
+            aria-label="Search pools and strategies"
           />
           <kbd>⌘ K</kbd>
         </label>
         <nav aria-label="Application navigation">
           <button
             className={view === "terminal" ? "active" : ""}
+            aria-pressed={view === "terminal"}
             onClick={() => setView("terminal")}
           >
             Terminal
           </button>
           <button
             className={view === "portfolio" ? "active" : ""}
+            aria-pressed={view === "portfolio"}
             onClick={() => setView("portfolio")}
           >
             Portfolio
@@ -1602,6 +1686,7 @@ function PoolersTerminal({
               <button
                 key={panel}
                 className={mobilePanel === panel ? "active" : ""}
+                aria-pressed={mobilePanel === panel}
                 onClick={() => setMobilePanel(panel)}
               >
                 {panel === "Discover"
@@ -1612,13 +1697,18 @@ function PoolersTerminal({
               </button>
             ))}
           </div>
-          <div className={`pt-workspace show-${mobilePanel.toLowerCase()}`}>
-            <aside className="pt-discovery">
+          <div
+            id="workspace-content"
+            tabIndex={-1}
+            className={`pt-workspace show-${mobilePanel.toLowerCase()} ${discoveryCollapsed ? "is-discovery-collapsed" : ""} ${chartExpanded ? "is-chart-expanded" : ""}`}
+          >
+            <aside className="pt-discovery" id="pool-discovery">
               <div className="pt-discovery-tabs">
                 {["Strategies", "Pools"].map((tab) => (
                   <button
                     key={tab}
                     className={discovery === tab ? "active" : ""}
+                    aria-pressed={discovery === tab}
                     onClick={() => setDiscovery(tab)}
                   >
                     {tab}
@@ -1641,8 +1731,16 @@ function PoolersTerminal({
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search pools"
-                  aria-label="Search mobile pools"
+                  placeholder={
+                    discovery === "Pools"
+                      ? "Search pools"
+                      : "Search strategies or creators"
+                  }
+                  aria-label={
+                    discovery === "Pools"
+                      ? "Search mobile pools"
+                      : "Search strategies or creators"
+                  }
                 />
               </label>
               {discovery === "Pools" ? (
@@ -1652,6 +1750,7 @@ function PoolersTerminal({
                       <button
                         key={item}
                         className={category === item ? "active" : ""}
+                        aria-pressed={category === item}
                         onClick={() => setCategory(item)}
                       >
                         {item}
@@ -1698,12 +1797,43 @@ function PoolersTerminal({
                 </>
               ) : (
                 <div className="pt-curated-list">
-                  {STRATEGIES.filter((strategy) =>
-                    `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
-                      .toLowerCase()
-                      .includes(query.toLowerCase()),
-                  ).map((strategy) => (
+                  {filteredStrategies.map((strategy) => (
                     <article key={strategy.id}>
+                      <div className="pt-discovery-person">
+                        <button
+                          className="pt-strategy-author"
+                          aria-label={`View ${strategy.creator} profile`}
+                          onClick={() =>
+                            setModal({
+                              kind: "creator",
+                              handle: strategy.creator,
+                            })
+                          }
+                        >
+                          <img
+                            src={strategy.avatar || "/creators/default.svg"}
+                            alt=""
+                          />
+                          <span>@{strategy.creator}</span>
+                        </button>
+                        <button
+                          className="pt-follow-button"
+                          aria-label={`${workspace.following.includes(strategy.creator) ? "Unfollow" : "Follow"} ${strategy.creator}`}
+                          aria-pressed={workspace.following.includes(
+                            strategy.creator,
+                          )}
+                          onClick={() => followCreator(strategy.creator)}
+                        >
+                          {workspace.following.includes(strategy.creator) ? (
+                            <Check size={13} />
+                          ) : (
+                            <Plus size={13} />
+                          )}
+                          {workspace.following.includes(strategy.creator)
+                            ? "Following"
+                            : "Follow"}
+                        </button>
+                      </div>
                       <button
                         className="pt-strategy-discovery"
                         onClick={() => {
@@ -1712,14 +1842,15 @@ function PoolersTerminal({
                         }}
                       >
                         <TokenPair
-                          pool={
-                            MARKETS.find((item) => item.id === strategy.poolId)!
-                          }
+                          pool={MARKETS.find(
+                            (item) => item.id === strategy.poolId,
+                          )!}
                         />
                         <span>
                           <strong>{strategy.title}</strong>
                           <small>
-                            {strategy.creator} · {strategy.shape}
+                            {strategy.shape} · {strategy.members}{" "}
+                            {strategy.members === 1 ? "pooler" : "poolers"}
                           </small>
                         </span>
                         <ArrowUpRight size={14} />
@@ -1737,8 +1868,29 @@ function PoolersTerminal({
                           {formatMoney(strategy.apr)}%
                         </span>
                       </div>
+                      <div className="pt-social-actions">
+                        <button
+                          className="pt-small-button"
+                          onClick={() => openJoin(strategy)}
+                        >
+                          Join <ArrowUpRight size={13} />
+                        </button>
+                        <button
+                          className="pt-follow-button"
+                          onClick={() => copyStrategyLink(strategy)}
+                          aria-label={`Copy link to ${strategy.title} by ${strategy.creator}`}
+                        >
+                          <Copy size={13} /> Copy link
+                        </button>
+                      </div>
                     </article>
                   ))}
+                  {!filteredStrategies.length && (
+                    <div className="pt-empty">
+                      <strong>No strategies found</strong>
+                      <button onClick={() => setQuery("")}>Clear search</button>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="pt-discovery-footer">
@@ -1807,16 +1959,42 @@ function PoolersTerminal({
               </header>
               <section className="pt-chart-section">
                 <div className="pt-chart-toolbar">
-                  <div className="pt-line-tabs">
-                    {["Chart", "Details"].map((tab) => (
-                      <button
-                        key={tab}
-                        className={marketTab === tab ? "active" : ""}
-                        onClick={() => setMarketTab(tab)}
-                      >
-                        {tab}
-                      </button>
-                    ))}
+                  <div className="pt-chart-tools">
+                    <button
+                      className="pt-icon-button pt-desktop-control"
+                      aria-label={
+                        discoveryCollapsed
+                          ? "Show pool discovery"
+                          : "Collapse pool discovery"
+                      }
+                      aria-expanded={!discoveryCollapsed}
+                      disabled={chartExpanded}
+                      aria-controls="pool-discovery"
+                      onClick={() => setDiscoveryCollapsed((value) => !value)}
+                      title={
+                        discoveryCollapsed
+                          ? "Show pool discovery"
+                          : "Collapse pool discovery"
+                      }
+                    >
+                      {discoveryCollapsed ? (
+                        <PanelLeftOpen size={16} />
+                      ) : (
+                        <PanelLeftClose size={16} />
+                      )}
+                    </button>
+                    <div className="pt-line-tabs">
+                      {["Chart", "Details"].map((tab) => (
+                        <button
+                          key={tab}
+                          className={marketTab === tab ? "active" : ""}
+                          aria-pressed={marketTab === tab}
+                          onClick={() => setMarketTab(tab)}
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="pt-chart-settings">
                     <select
@@ -1849,6 +2027,25 @@ function PoolersTerminal({
                       onClick={() => setChartReset((value) => value + 1)}
                     >
                       <RotateCcw size={14} />
+                    </button>
+                    <button
+                      className="pt-icon-button pt-desktop-control"
+                      aria-label={
+                        chartExpanded ? "Restore workspace" : "Expand chart"
+                      }
+                      aria-pressed={chartExpanded}
+                      title={
+                        chartExpanded
+                          ? "Restore workspace (Esc)"
+                          : "Expand chart"
+                      }
+                      onClick={() => setChartExpanded((value) => !value)}
+                    >
+                      {chartExpanded ? (
+                        <Minimize2 size={15} />
+                      ) : (
+                        <Maximize2 size={15} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1904,12 +2101,14 @@ function PoolersTerminal({
                   <div className="pt-line-tabs">
                     <button
                       className={activityTab !== "History" ? "active" : ""}
+                      aria-pressed={activityTab !== "History"}
                       onClick={() => setActivityTab("Strategies")}
                     >
                       Strategies
                     </button>
                     <button
                       className={activityTab === "History" ? "active" : ""}
+                      aria-pressed={activityTab === "History"}
                       onClick={() => setActivityTab("History")}
                     >
                       History
@@ -1938,12 +2137,14 @@ function PoolersTerminal({
                     <div className="pt-position-filters">
                       <button
                         className={activityTab === "Strategies" ? "active" : ""}
+                        aria-pressed={activityTab === "Strategies"}
                         onClick={() => setActivityTab("Strategies")}
                       >
                         All
                       </button>
                       <button
                         className={activityTab === "Yours" ? "active" : ""}
+                        aria-pressed={activityTab === "Yours"}
                         onClick={() => setActivityTab("Yours")}
                       >
                         Yours{" "}
@@ -1974,10 +2175,12 @@ function PoolersTerminal({
                         {selectedStrategies.map((strategy) => (
                           <article
                             className="pt-strategy-card"
+                            id={`strategy-${strategy.id}`}
                             key={strategy.id}
                           >
                             <button
                               className="pt-strategy-author"
+                              aria-label={`View ${strategy.creator} profile`}
                               onClick={() =>
                                 setModal({
                                   kind: "creator",
@@ -1989,13 +2192,12 @@ function PoolersTerminal({
                                 src={strategy.avatar || "/creators/default.svg"}
                                 alt=""
                               />
-                              <span>{strategy.creator}</span>
+                              <span>@{strategy.creator}</span>
                             </button>
                             <div className="pt-strategy-card-title">
                               <strong>{strategy.title}</strong>
                               <span>
-                                {strategy.shape} · {strategy.members}{" "}
-                                participants · {strategy.creatorFee || 10}%
+                                {strategy.shape} · {strategy.creatorFee || 10}%
                                 creator fee
                               </span>
                             </div>
@@ -2024,6 +2226,38 @@ function PoolersTerminal({
                             >
                               Join
                             </button>
+                            <div className="pt-social-actions">
+                              <button
+                                className="pt-follow-button"
+                                aria-label={`${workspace.following.includes(strategy.creator) ? "Unfollow" : "Follow"} ${strategy.creator}`}
+                                aria-pressed={workspace.following.includes(
+                                  strategy.creator,
+                                )}
+                                onClick={() => followCreator(strategy.creator)}
+                              >
+                                {workspace.following.includes(
+                                  strategy.creator,
+                                ) ? (
+                                  <Check size={14} />
+                                ) : (
+                                  <Plus size={14} />
+                                )}
+                                {workspace.following.includes(strategy.creator)
+                                  ? "Following"
+                                  : "Follow"}
+                              </button>
+                              <span>
+                                <Users size={13} /> {strategy.members}{" "}
+                                {strategy.members === 1 ? "pooler" : "poolers"}
+                              </span>
+                              <button
+                                className="pt-follow-button"
+                                onClick={() => copyStrategyLink(strategy)}
+                                aria-label={`Copy link to ${strategy.title} by ${strategy.creator}`}
+                              >
+                                <Copy size={13} /> Copy link
+                              </button>
+                            </div>
                           </article>
                         ))}
                         {activePositions
@@ -2063,183 +2297,194 @@ function PoolersTerminal({
                   Create strategy
                 </button>
               </div>
-              <FeeControl value={creatorFee} onChange={setCreatorFee} />
-              <div className="pt-field-heading">
-                <label htmlFor="strategy-amount">Amount</label>
-                <div className="pt-funding-switch">
-                  {(["USDC", "SOL"] as FundingAsset[]).map((token) => (
-                    <button
-                      key={token}
-                      className={fundingToken === token ? "active" : ""}
-                      onClick={() => setFundingToken(token)}
-                      aria-label={`Fund with ${token}`}
-                      title={token}
-                    >
-                      <img
-                        src={`/tokens/${token.toLowerCase()}.png`}
-                        alt={token}
-                      />
-                    </button>
-                  ))}
+              <div className="pt-composer-body">
+                <FeeControl value={creatorFee} onChange={setCreatorFee} />
+                <div className="pt-field-heading">
+                  <label htmlFor="strategy-amount">Amount</label>
+                  <div className="pt-funding-switch">
+                    {(["USDC", "SOL"] as FundingAsset[]).map((token) => (
+                      <button
+                        key={token}
+                        className={fundingToken === token ? "active" : ""}
+                        onClick={() => setFundingToken(token)}
+                        aria-label={`Fund with ${token}`}
+                        title={token}
+                      >
+                        <img
+                          src={`/tokens/${token.toLowerCase()}.png`}
+                          alt={token}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="pt-amount-box">
-                <div className="pt-amount-token">
-                  <img
-                    src={`/tokens/${fundingToken.toLowerCase()}.png`}
-                    alt=""
+                <div className="pt-amount-box">
+                  <div className="pt-amount-token">
+                    <img
+                      src={`/tokens/${fundingToken.toLowerCase()}.png`}
+                      alt=""
+                    />
+                    <strong>{fundingToken}</strong>
+                    <ChevronDown size={12} />
+                  </div>
+                  <input
+                    id="strategy-amount"
+                    aria-label="Strategy amount"
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    min="0"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
                   />
-                  <strong>{fundingToken}</strong>
-                  <ChevronDown size={12} />
+                  <div className="pt-available">
+                    <span>
+                      Available {formatMoney(workspace.balances[fundingToken])}{" "}
+                      <button
+                        onClick={() =>
+                          setAmount(String(workspace.balances[fundingToken]))
+                        }
+                      >
+                        Max
+                      </button>
+                    </span>
+                    <span>
+                      ${formatMoney(Number.isFinite(usdAmount) ? usdAmount : 0)}
+                    </span>
+                  </div>
                 </div>
-                <input
-                  id="strategy-amount"
-                  aria-label="Strategy amount"
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                />
-                <div className="pt-available">
-                  <span>
-                    Available {formatMoney(workspace.balances[fundingToken])}{" "}
-                    <button
-                      onClick={() =>
-                        setAmount(String(workspace.balances[fundingToken]))
-                      }
-                    >
-                      Max
-                    </button>
-                  </span>
-                  <span>
-                    ${formatMoney(Number.isFinite(usdAmount) ? usdAmount : 0)}
+                {!amountValid && (
+                  <p className="pt-field-error" role="status">
+                    {Number(amount) <= 0
+                      ? "Enter an amount above zero"
+                      : "Amount exceeds available balance"}
+                  </p>
+                )}
+                <div className="pt-field-heading">
+                  <span>Strategy</span>
+                  <span
+                    className="pt-side-switch"
+                    aria-label="Token allocation"
+                  >
+                    {[
+                      { value: "fifty_fifty", label: "50 / 50" },
+                      { value: "base", label: pool.symbol },
+                      { value: "quote", label: pool.quote },
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        aria-pressed={side === item.value}
+                        className={side === item.value ? "active" : ""}
+                        onClick={() => {
+                          setSide(
+                            item.value as "fifty_fifty" | "base" | "quote",
+                          );
+                          setLowerBin(
+                            item.value === "base"
+                              ? 1
+                              : item.value === "quote"
+                                ? -70
+                                : -35,
+                          );
+                          setUpperBin(
+                            item.value === "base"
+                              ? 70
+                              : item.value === "quote"
+                                ? -1
+                                : 34,
+                          );
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </span>
                 </div>
-              </div>
-              {!amountValid && (
-                <p className="pt-field-error" role="status">
-                  {Number(amount) <= 0
-                    ? "Enter an amount above zero"
-                    : "Amount exceeds available balance"}
-                </p>
-              )}
-              <div className="pt-field-heading">
-                <span>Strategy</span>
-                <span className="pt-side-switch" aria-label="Token allocation">
-                  {[
-                    { value: "fifty_fifty", label: "50 / 50" },
-                    { value: "base", label: pool.symbol },
-                    { value: "quote", label: pool.quote },
-                  ].map((item) => (
+                <div className="pt-shape-picker">
+                  {["Spot", "Curve", "Bid Ask"].map((item) => (
                     <button
-                      key={item.value}
-                      aria-pressed={side === item.value}
-                      className={side === item.value ? "active" : ""}
-                      onClick={() => {
-                        setSide(item.value as "fifty_fifty" | "base" | "quote");
-                        setLowerBin(
-                          item.value === "base"
-                            ? 1
-                            : item.value === "quote"
-                              ? -70
-                              : -35,
-                        );
-                        setUpperBin(
-                          item.value === "base"
-                            ? 70
-                            : item.value === "quote"
-                              ? -1
-                              : 34,
-                        );
-                      }}
+                      key={item}
+                      className={shape === item ? "active" : ""}
+                      aria-pressed={shape === item}
+                      onClick={() => setShape(item)}
                     >
-                      {item.label}
+                      <ShapeIcon shape={item} />
+                      {item}
                     </button>
                   ))}
-                </span>
-              </div>
-              <div className="pt-shape-picker">
-                {["Spot", "Curve", "Bid Ask"].map((item) => (
+                </div>
+                <div className="pt-field-heading pt-range-heading">
+                  <span>Price range</span>
                   <button
-                    key={item}
-                    className={shape === item ? "active" : ""}
-                    aria-pressed={shape === item}
-                    onClick={() => setShape(item)}
+                    className="pt-icon-button"
+                    onClick={() => {
+                      setLowerBin(-35);
+                      setUpperBin(34);
+                    }}
+                    aria-label="Reset price range"
+                    title="Reset price range"
                   >
-                    <ShapeIcon shape={item} />
-                    {item}
+                    <RotateCcw size={14} />
                   </button>
-                ))}
-              </div>
-              <div className="pt-field-heading pt-range-heading">
-                <span>Price range</span>
-                <button
-                  onClick={() => {
-                    setLowerBin(-35);
-                    setUpperBin(34);
+                </div>
+                <div className="pt-bin-legend">
+                  <span>
+                    <i />
+                    {pool.symbol}
+                  </span>
+                  <span>
+                    <i />
+                    {pool.quote}
+                  </span>
+                  <span>
+                    {pool.quote}/{pool.symbol}
+                  </span>
+                </div>
+                <BinRangeControl
+                  price={pool.pairPrice}
+                  unitLabel={`${pool.quote} per ${pool.symbol}`}
+                  binStep={pool.binStep}
+                  lowerBin={lowerBin}
+                  upperBin={upperBin}
+                  shape={shape}
+                  side={side}
+                  onRangeChange={(lower, upper) => {
+                    setLowerBin(lower);
+                    setUpperBin(upper);
                   }}
-                  aria-label="Reset price range"
-                  title="Reset price range"
+                />
+                <div className="pt-bin-count">
+                  <span>Total bins</span>
+                  <strong>{upperBin - lowerBin + 1}</strong>
+                </div>
+              </div>
+              <div className="pt-composer-footer">
+                <button
+                  className="pt-primary pt-create-button"
+                  disabled={workspace.connected && !amountValid}
+                  onClick={() => {
+                    if (!workspace.connected)
+                      pendingWalletAction.current = amountValid
+                        ? { kind: "review" }
+                        : null;
+                    setModal(
+                      workspace.connected
+                        ? { kind: "review" }
+                        : { kind: "wallet" },
+                    );
+                  }}
                 >
-                  <RotateCcw size={14} />
+                  {workspace.connected
+                    ? "Review strategy"
+                    : "Connect wallet to create strategy"}
+                  <ArrowRight size={16} />
                 </button>
               </div>
-              <div className="pt-bin-legend">
-                <span>
-                  <i />
-                  {pool.symbol}
-                </span>
-                <span>
-                  <i />
-                  {pool.quote}
-                </span>
-                <span>
-                  {pool.quote}/{pool.symbol}
-                </span>
-              </div>
-              <BinRangeControl
-                price={pool.pairPrice}
-                binStep={pool.binStep}
-                lowerBin={lowerBin}
-                upperBin={upperBin}
-                shape={shape}
-                side={side}
-                onRangeChange={(lower, upper) => {
-                  setLowerBin(lower);
-                  setUpperBin(upper);
-                }}
-              />
-              <div className="pt-bin-count">
-                <span>Total bins</span>
-                <strong>{upperBin - lowerBin + 1}</strong>
-              </div>
-              <button
-                className="pt-primary pt-create-button"
-                disabled={workspace.connected && !amountValid}
-                onClick={() => {
-                  if (!workspace.connected)
-                    pendingWalletAction.current = amountValid
-                      ? { kind: "review" }
-                      : null;
-                  setModal(
-                    workspace.connected
-                      ? { kind: "review" }
-                      : { kind: "wallet" },
-                  );
-                }}
-              >
-                {workspace.connected
-                  ? "Review strategy"
-                  : "Connect wallet to create strategy"}
-                <ArrowRight size={16} />
-              </button>
             </aside>
           </div>
         </>
       ) : (
-        <main className="pt-account-page">
+        <main id="workspace-content" tabIndex={-1} className="pt-account-page">
           <div className="pt-account-header">
             <div>
               <span className="pt-eyebrow">Account</span>
@@ -2437,7 +2682,17 @@ function PoolersTerminal({
                   <span
                     className={`pt-creator-avatar tone-${["teal", "purple", "orange"][index]}`}
                   >
-                    {creator[0].toUpperCase()}
+                    <img
+                      src={
+                        STRATEGIES.find(
+                          (strategy) => strategy.creator === creator,
+                        )?.avatar || "/creators/default.svg"
+                      }
+                      alt=""
+                      width={34}
+                      height={34}
+                      style={{ borderRadius: "50%", objectFit: "cover" }}
+                    />
                   </span>
                   <button
                     className="pt-creator-link"
@@ -2448,7 +2703,10 @@ function PoolersTerminal({
                   >
                     {creator}
                   </button>
-                  <button onClick={() => followCreator(creator)}>
+                  <button
+                    aria-pressed={workspace.following.includes(creator)}
+                    onClick={() => followCreator(creator)}
+                  >
                     {workspace.following.includes(creator)
                       ? "Following"
                       : "Follow"}
@@ -2616,9 +2874,18 @@ function PoolersTerminal({
               <button
                 className="pt-primary"
                 disabled={!modalValueValid}
-                onClick={() => joinStrategy(modal.strategy)}
+                onClick={() => {
+                  if (workspace.connected) joinStrategy(modal.strategy);
+                  else {
+                    pendingWalletAction.current = modal;
+                    setModal({ kind: "wallet" });
+                  }
+                }}
               >
-                Join strategy <ArrowRight size={16} />
+                {workspace.connected
+                  ? "Join strategy"
+                  : "Connect wallet to join"}{" "}
+                <ArrowRight size={16} />
               </button>
             </>
           ) : modal.kind === "fund" ? (
@@ -2762,6 +3029,7 @@ function PoolersTerminal({
               </div>
               <button
                 className="pt-primary"
+                aria-pressed={workspace.following.includes(modal.handle)}
                 onClick={() => followCreator(modal.handle)}
               >
                 {workspace.following.includes(modal.handle)
@@ -3003,6 +3271,7 @@ function MarketCandles({
   chartUnit: string;
   resetKey: number;
 }) {
+  const descriptionId = useId();
   const canvasRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -3333,8 +3602,9 @@ function MarketCandles({
         <div
           ref={canvasRef}
           className="pt-chart-canvas"
-          role="img"
+          role="group"
           aria-label={`${pool.pair} ${chartUnit === "MCap" ? "market cap" : "price"} chart, ${timeframe}`}
+          aria-describedby={descriptionId}
           data-range-min={lowerPrice}
           data-range-max={upperPrice}
         />
@@ -3371,6 +3641,65 @@ function MarketCandles({
             : ""}
         </span>
       </div>
+      <p className="bin-range-sr-only" id={descriptionId}>
+        {bars.length
+          ? `Latest close ${chartPrice(bars[bars.length - 1].c * multiplier)} USD. Open View chart data below for the latest five candles in a table.`
+          : "Chart data is loading or unavailable."}
+      </p>
+      {bars.length > 0 && (
+        <details className="pt-chart-data">
+          <summary>
+            View chart data <ChevronDown size={13} aria-hidden="true" />
+          </summary>
+          <div
+            className="pt-chart-data-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Recent candle data"
+          >
+            <table>
+              <caption>
+                Latest {Math.min(5, bars.length)} {timeframe} candles ·{" "}
+                {chartUnit === "MCap" ? "Market cap" : "Price"} in USD
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time (UTC)</th>
+                  <th scope="col">Open</th>
+                  <th scope="col">High</th>
+                  <th scope="col">Low</th>
+                  <th scope="col">Close</th>
+                  <th scope="col">Volume (USD)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bars
+                  .slice(-5)
+                  .reverse()
+                  .map((bar) => (
+                    <tr key={bar.t}>
+                      <th scope="row">
+                        <time dateTime={new Date(bar.t * 1000).toISOString()}>
+                          {new Date(bar.t * 1000).toLocaleString("en-GB", {
+                            month: "short",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "UTC",
+                          })}
+                        </time>
+                      </th>
+                      {[bar.o, bar.h, bar.l, bar.c].map((value, index) => (
+                        <td key={index}>{chartPrice(value * multiplier)}</td>
+                      ))}
+                      <td>{formatMoney(bar.v)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
     </div>
   );
 }
@@ -3412,6 +3741,7 @@ function ActivityRow({ event }: { event: ActivityEvent }) {
 
 type BinRangeControlProps = {
   price: number;
+  unitLabel?: string;
   binStep?: number;
   lowerBin: number;
   upperBin: number;
@@ -3458,6 +3788,7 @@ function binControlPercent(value: number) {
  */
 function BinRangeControl({
   price,
+  unitLabel = "quote units per base token",
   binStep = 20,
   lowerBin,
   upperBin,
@@ -3656,6 +3987,10 @@ function BinRangeControl({
       <span className="bin-range-sr-only" id={titleId}>
         Liquidity price range
       </span>
+      <span className="bin-range-sr-only" id={`${titleId}-help`}>
+        Prices in {unitLabel}. Arrow keys adjust one bin. Hold Shift for ten
+        bins. Home and End move to the available bounds.
+      </span>
       <div className="bin-range-chart">
         <div
           className="bin-range-track"
@@ -3690,10 +4025,11 @@ function BinRangeControl({
             type="button"
             role="slider"
             aria-label="Minimum price range"
+            aria-describedby={`${titleId}-help`}
             aria-valuemin={RANGE_FIRST_BIN}
             aria-valuemax={upper - 1}
             aria-valuenow={lower}
-            aria-valuetext={`${binControlPriceFormat(priceAtBin(lower))}, ${binControlPercent((Math.pow(rate, lower) - 1) * 100)}, bin ${lower}`}
+            aria-valuetext={`${binControlPriceFormat(priceAtBin(lower))} ${unitLabel}, ${binControlPercent((Math.pow(rate, lower) - 1) * 100)}, bin ${lower}`}
             aria-orientation="horizontal"
             className={`bin-range-handle is-lower ${dragging === "lower" ? "is-dragging" : ""}`}
             style={{ left: `${fractionAtBin(lower) * 100}%` }}
@@ -3712,10 +4048,11 @@ function BinRangeControl({
             type="button"
             role="slider"
             aria-label="Maximum price range"
+            aria-describedby={`${titleId}-help`}
             aria-valuemin={lower + 1}
             aria-valuemax={RANGE_LAST_BIN}
             aria-valuenow={upper}
-            aria-valuetext={`${binControlPriceFormat(priceAtBin(upper))}, ${binControlPercent((Math.pow(rate, upper) - 1) * 100)}, bin ${upper}`}
+            aria-valuetext={`${binControlPriceFormat(priceAtBin(upper))} ${unitLabel}, ${binControlPercent((Math.pow(rate, upper) - 1) * 100)}, bin ${upper}`}
             aria-orientation="horizontal"
             className={`bin-range-handle is-upper ${dragging === "upper" ? "is-dragging" : ""}`}
             style={{ left: `${fractionAtBin(upper) * 100}%` }}
@@ -3929,13 +4266,20 @@ function FeeControl({
   return (
     <div className="fee-control">
       <label id={`${id}-label`}>Social LP profit</label>
-      <p>% of followers’ profits you earn</p>
+      <p id={`${id}-help`}>
+        % of followers’ profits you earn
+        <span className="bin-range-sr-only">
+          . Use arrow keys to adjust by one percent, or five percent with Shift.
+          Home sets five percent; End sets twenty-five percent.
+        </span>
+      </p>
       <div
         ref={sliderRef}
         className={`fee-slider ${dragging ? "is-dragging" : ""}`}
         role="slider"
         tabIndex={0}
         aria-labelledby={`${id}-label`}
+        aria-describedby={`${id}-help`}
         aria-valuemin={5}
         aria-valuemax={25}
         aria-valuenow={current}
