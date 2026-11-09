@@ -1,6 +1,6 @@
 # Poolers interface
 
-A React redesign of [app.poolers.xyz](https://app.poolers.xyz), with Poolers token artwork, captured market history, bin-based strategy controls, and a landing page informed by [swap.io](https://swap.io/). The social cards and button hierarchy also draw on [fomo.family](https://fomo.family/)'s public product showcase.
+A React redesign of [app.poolers.xyz](https://app.poolers.xyz), with Poolers token artwork, captured market history, bin-based strategy controls, and a landing page informed by [swap.io](https://swap.io/). Terminal framing and social discovery draw on the supplied [fomo.family](https://fomo.family/) trading captures and the [NoHomo Svelte reconstruction](https://github.com/shali1995/NoHomo).
 
 ## Run
 
@@ -34,8 +34,8 @@ Application components live in `src/App.tsx`; styles live in `src/index.css`. Re
 - Price range: original bin-price math, two non-crossing drag handles, direct price entry, and one-bin +/- controls.
 - Allocation: balanced, base-only, or quote-only presets. Shape and selected bins update together.
 - Price chart: original OHLC history, volume, crosshair, pan, zoom, timeframe aggregation, price/market-cap views, and linked minimum/maximum price lines.
-- Workspace: collapsible discovery, expanded chart with Escape recovery, and a visible strategy action while the desktop composer scrolls.
-- Social discovery: actual creator avatars, persistent follows, join actions, and copyable strategy links.
+- Workspace: collapsible discovery, expanded chart with Escape recovery, pointer/keyboard chart-height adjustment, and a visible strategy action while the desktop composer scrolls.
+- Social discovery: actual creator avatars, persistent follows, All creators/Following filters, join actions, and copyable strategy links.
 - Accessibility: skip links, announced selected states, keyboard slider instructions, larger touch controls, high-contrast focus rings, and an expandable recent-candle data table.
 
 ## Data and local interactions
@@ -44,13 +44,15 @@ Token and creator artwork comes from public URLs resolved by the original Pooler
 
 The local wallet, position actions, funding controls, follows, and profile changes update browser storage under `poolers.workspace.v2`. They do not connect a real wallet, request signatures, submit transactions, or write to the original Poolers backend. Reset workspace restores the initial state. Profile setup does not persist a password.
 
+New position activity carries an explicit pool ID, so history remains scoped correctly even when two pools share a base token. Older pair-labelled records remain readable; account history retains all activity.
+
 The purple P is rendered as an inline vector in the interface. The matching standalone asset is `public/poolers-mark.svg`.
 
 Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Orange marks focus and active social controls; secondary actions stay neutral.
 
 ## Review and attribution
 
-The design pass used [UX Audit by paulunemoon](https://github.com/paulunemoon/ux-audit-skill) and [Unslop by Damir Sokolovsky](https://github.com/heydamir/unslop). Unslop is licensed under CC BY 4.0; this credit is retained for the applied workflow. Evidence, prioritized changes, and the remaining original-app differences are recorded in `ux-audit-terminal-2026-11-08.md` and `ux-audit-polish-2026-11-09.md`.
+The design pass used [UX Audit by paulunemoon](https://github.com/paulunemoon/ux-audit-skill) and [Unslop by Damir Sokolovsky](https://github.com/heydamir/unslop). Unslop is licensed under CC BY 4.0; this credit is retained for the applied workflow. Evidence, prioritized changes, and remaining differences are recorded in `ux-audit-terminal-2026-11-08.md`, `ux-audit-polish-2026-11-09.md`, and `ux-audit-fomo-reference-2026-11-09.md`.
 
 TradingView Lightweight Charts is Apache 2.0 licensed. Its chart attribution remains visible. See `THIRD_PARTY_NOTICES.md` for third-party references.
 

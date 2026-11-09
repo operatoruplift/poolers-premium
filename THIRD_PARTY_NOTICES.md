@@ -6,3 +6,4 @@
 - Token and public creator artwork resolved through [Poolers](https://app.poolers.xyz). Original source URLs are retained in `public/tokens/sources.json` and `public/creators/sources.json`. These assets remain subject to their respective owners' rights.
 - Market and strategy snapshots are from public Poolers endpoints. OHLC source URLs and capture timestamps remain in `public/history`.
 - [swap.io](https://swap.io/) informed the landing-page palette and scroll composition. Its branding, application code, and copy were not copied.
+- User-supplied [Fomo](https://fomo.family/) trading captures and the [NoHomo reconstruction](https://github.com/shali1995/NoHomo) informed terminal surfaces, panel proportions, discovery filters, and chart-height controls. These were reimplemented in React; captured session material, runtime bundles, fonts, and brand assets are not included.

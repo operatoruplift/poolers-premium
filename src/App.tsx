@@ -24,6 +24,7 @@ import {
   useState,
   type FormEvent,
   type ReactNode,
+  type CSSProperties,
 } from "react";
 import {
   motion,
@@ -1045,6 +1046,7 @@ type LiquidityPosition = {
 };
 type ActivityEvent = {
   id: string;
+  poolId?: string;
   action: string;
   detail: string;
   amount: number;
@@ -1119,6 +1121,7 @@ function newWorkspace(): Workspace {
     events: [
       {
         id: "seed",
+        poolId: "jup-sol",
         action: "Joined strategy",
         detail: "JUP · Bid Ask · JUP / SOL",
         amount: 800,
@@ -1221,6 +1224,7 @@ function PoolersTerminal({
   );
   const [selectedId, setSelectedId] = useState(poolFromLocation);
   const [discovery, setDiscovery] = useState("Strategies");
+  const [strategyFeed, setStrategyFeed] = useState<"All" | "Following">("All");
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [timeframe, setTimeframe] = useState("5m");
@@ -1252,6 +1256,7 @@ function PoolersTerminal({
   const [discoveryCollapsed, setDiscoveryCollapsed] = useState(false);
   const [chartExpanded, setChartExpanded] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const followingFeedRef = useRef<HTMLButtonElement>(null);
   const pendingWalletAction = useRef<TerminalModal>(null);
   const pool = MARKETS.find((item) => item.id === selectedId)!;
   const minRange = Number(
@@ -1288,17 +1293,21 @@ function PoolersTerminal({
     Number.isFinite(Number(amount)) &&
     Number(amount) > 0 &&
     Number(amount) <= workspace.balances[fundingToken];
-  const poolEvents = workspace.events.filter(
-    (event) =>
-      event.detail.includes(pool.pair) || event.detail.includes(pool.symbol),
+  const poolEvents = workspace.events.filter((event) =>
+    event.poolId
+      ? event.poolId === selectedId
+      : event.detail.includes(pool.pair),
   );
   const selectedStrategies = STRATEGIES.filter(
     (strategy) => strategy.poolId === selectedId,
   );
-  const filteredStrategies = STRATEGIES.filter((strategy) =>
-    `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
-      .toLowerCase()
-      .includes(searchQuery),
+  const filteredStrategies = STRATEGIES.filter(
+    (strategy) =>
+      (strategyFeed === "All" ||
+        workspace.following.includes(strategy.creator)) &&
+      `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
+        .toLowerCase()
+        .includes(searchQuery),
   );
   const modalValue = Number(modalAmount);
   const modalValueValid =
@@ -1384,12 +1393,14 @@ function PoolersTerminal({
     detail: string,
     units: number,
     token: FundingAsset,
+    poolId?: string,
   ): ActivityEvent => ({
     id: crypto.randomUUID(),
     action,
     detail,
     amount: units,
     token,
+    poolId,
     date: new Date().toISOString(),
   });
   const createStrategy = () => {
@@ -1419,7 +1430,13 @@ function PoolersTerminal({
       },
       positions: [position, ...current.positions],
       events: [
-        eventRecord("Created strategy", pool.pair, units, fundingToken),
+        eventRecord(
+          "Created strategy",
+          pool.pair,
+          units,
+          fundingToken,
+          selectedId,
+        ),
         ...current.events,
       ].slice(0, 500),
     }));
@@ -1453,7 +1470,13 @@ function PoolersTerminal({
       },
       positions: [position, ...current.positions],
       events: [
-        eventRecord("Joined strategy", strategy.title, modalValue, "USDC"),
+        eventRecord(
+          "Joined strategy",
+          strategy.title,
+          modalValue,
+          "USDC",
+          strategy.poolId,
+        ),
         ...current.events,
       ].slice(0, 500),
     }));
@@ -1482,6 +1505,7 @@ function PoolersTerminal({
           position.title,
           position.units,
           position.token,
+          position.poolId,
         ),
         ...current.events,
       ].slice(0, 500),
@@ -1602,6 +1626,7 @@ function PoolersTerminal({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
+              setStrategyFeed("All");
               setDiscovery(
                 CREATORS.some(
                   (creator) =>
@@ -1721,6 +1746,7 @@ function PoolersTerminal({
                   onClick={() => {
                     setQuery("");
                     setCategory("All");
+                    setStrategyFeed("All");
                   }}
                 >
                   <SlidersHorizontal size={16} />
@@ -1796,102 +1822,150 @@ function PoolersTerminal({
                   </div>
                 </>
               ) : (
-                <div className="pt-curated-list">
-                  {filteredStrategies.map((strategy) => (
-                    <article key={strategy.id}>
-                      <div className="pt-discovery-person">
+                <>
+                  <div
+                    className="pt-categories pt-feed-filter"
+                    aria-label="Strategy feed filter"
+                  >
+                    <button
+                      className={strategyFeed === "All" ? "active" : ""}
+                      aria-pressed={strategyFeed === "All"}
+                      onClick={() => setStrategyFeed("All")}
+                    >
+                      All creators
+                    </button>
+                    <button
+                      ref={followingFeedRef}
+                      className={strategyFeed === "Following" ? "active" : ""}
+                      aria-label="Following creators"
+                      aria-pressed={strategyFeed === "Following"}
+                      onClick={() => setStrategyFeed("Following")}
+                    >
+                      Following
+                    </button>
+                  </div>
+                  <span className="bin-range-sr-only" role="status">
+                    Showing {filteredStrategies.length} strategies
+                  </span>
+                  <div className="pt-curated-list">
+                    {filteredStrategies.map((strategy) => (
+                      <article key={strategy.id}>
+                        <div className="pt-discovery-person">
+                          <button
+                            className="pt-strategy-author"
+                            aria-label={`View ${strategy.creator} profile`}
+                            onClick={() =>
+                              setModal({
+                                kind: "creator",
+                                handle: strategy.creator,
+                              })
+                            }
+                          >
+                            <img
+                              src={strategy.avatar || "/creators/default.svg"}
+                              alt=""
+                            />
+                            <span>@{strategy.creator}</span>
+                          </button>
+                          <button
+                            className="pt-follow-button"
+                            aria-label={`${workspace.following.includes(strategy.creator) ? "Unfollow" : "Follow"} ${strategy.creator}`}
+                            aria-pressed={workspace.following.includes(
+                              strategy.creator,
+                            )}
+                            onClick={() => {
+                              const removing = workspace.following.includes(
+                                strategy.creator,
+                              );
+                              followCreator(strategy.creator);
+                              if (removing && strategyFeed === "Following")
+                                window.requestAnimationFrame(() =>
+                                  followingFeedRef.current?.focus(),
+                                );
+                            }}
+                          >
+                            {workspace.following.includes(strategy.creator) ? (
+                              <Check size={13} />
+                            ) : (
+                              <Plus size={13} />
+                            )}
+                            {workspace.following.includes(strategy.creator)
+                              ? "Following"
+                              : "Follow"}
+                          </button>
+                        </div>
                         <button
-                          className="pt-strategy-author"
-                          aria-label={`View ${strategy.creator} profile`}
-                          onClick={() =>
-                            setModal({
-                              kind: "creator",
-                              handle: strategy.creator,
-                            })
-                          }
+                          className="pt-strategy-discovery"
+                          onClick={() => {
+                            selectPool(strategy.poolId);
+                            setActivityTab("Strategies");
+                          }}
                         >
-                          <img
-                            src={strategy.avatar || "/creators/default.svg"}
-                            alt=""
+                          <TokenPair
+                            pool={MARKETS.find(
+                              (item) => item.id === strategy.poolId,
+                            )!}
                           />
-                          <span>@{strategy.creator}</span>
+                          <span>
+                            <strong>{strategy.title}</strong>
+                            <small>
+                              {strategy.shape} · {strategy.members}{" "}
+                              {strategy.members === 1 ? "pooler" : "poolers"}
+                            </small>
+                          </span>
+                          <ArrowUpRight size={14} />
                         </button>
+                        <div className="pt-side-strategy-meta">
+                          <span>
+                            Value ${formatMoney(strategy.valueUsd || 0)}
+                          </span>
+                          <span
+                            className={
+                              strategy.apr >= 0 ? "positive" : "negative"
+                            }
+                          >
+                            {strategy.apr >= 0 ? "+" : ""}
+                            {formatMoney(strategy.apr)}%
+                          </span>
+                        </div>
+                        <div className="pt-social-actions">
+                          <button
+                            className="pt-small-button"
+                            onClick={() => openJoin(strategy)}
+                          >
+                            Join <ArrowUpRight size={13} />
+                          </button>
+                          <button
+                            className="pt-follow-button"
+                            onClick={() => copyStrategyLink(strategy)}
+                            aria-label={`Copy link to ${strategy.title} by ${strategy.creator}`}
+                          >
+                            <Copy size={13} /> Copy link
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                    {!filteredStrategies.length && (
+                      <div className="pt-empty">
+                        <strong>
+                          {strategyFeed === "Following"
+                            ? "No matching strategies from followed creators"
+                            : "No strategies found"}
+                        </strong>
                         <button
-                          className="pt-follow-button"
-                          aria-label={`${workspace.following.includes(strategy.creator) ? "Unfollow" : "Follow"} ${strategy.creator}`}
-                          aria-pressed={workspace.following.includes(
-                            strategy.creator,
-                          )}
-                          onClick={() => followCreator(strategy.creator)}
+                          onClick={() => {
+                            setQuery("");
+                            setStrategyFeed("All");
+                          }}
                         >
-                          {workspace.following.includes(strategy.creator) ? (
-                            <Check size={13} />
-                          ) : (
-                            <Plus size={13} />
-                          )}
-                          {workspace.following.includes(strategy.creator)
-                            ? "Following"
-                            : "Follow"}
+                          {strategyFeed === "Following"
+                            ? "Browse all creators"
+                            : "Clear search"}
                         </button>
                       </div>
-                      <button
-                        className="pt-strategy-discovery"
-                        onClick={() => {
-                          selectPool(strategy.poolId);
-                          setActivityTab("Strategies");
-                        }}
-                      >
-                        <TokenPair
-                          pool={MARKETS.find(
-                            (item) => item.id === strategy.poolId,
-                          )!}
-                        />
-                        <span>
-                          <strong>{strategy.title}</strong>
-                          <small>
-                            {strategy.shape} · {strategy.members}{" "}
-                            {strategy.members === 1 ? "pooler" : "poolers"}
-                          </small>
-                        </span>
-                        <ArrowUpRight size={14} />
-                      </button>
-                      <div className="pt-side-strategy-meta">
-                        <span>
-                          Value ${formatMoney(strategy.valueUsd || 0)}
-                        </span>
-                        <span
-                          className={
-                            strategy.apr >= 0 ? "positive" : "negative"
-                          }
-                        >
-                          {strategy.apr >= 0 ? "+" : ""}
-                          {formatMoney(strategy.apr)}%
-                        </span>
-                      </div>
-                      <div className="pt-social-actions">
-                        <button
-                          className="pt-small-button"
-                          onClick={() => openJoin(strategy)}
-                        >
-                          Join <ArrowUpRight size={13} />
-                        </button>
-                        <button
-                          className="pt-follow-button"
-                          onClick={() => copyStrategyLink(strategy)}
-                          aria-label={`Copy link to ${strategy.title} by ${strategy.creator}`}
-                        >
-                          <Copy size={13} /> Copy link
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                  {!filteredStrategies.length && (
-                    <div className="pt-empty">
-                      <strong>No strategies found</strong>
-                      <button onClick={() => setQuery("")}>Clear search</button>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                </>
               )}
               <div className="pt-discovery-footer">
                 <button onClick={onOnboarding}>
@@ -2121,7 +2195,7 @@ function PoolersTerminal({
                 {activityTab === "History" ? (
                   <div className="pt-history-list">
                     {poolEvents.length ? (
-                      workspace.events
+                      poolEvents
                         .slice(0, 12)
                         .map((event) => (
                           <ActivityRow event={event} key={event.id} />
@@ -3272,7 +3346,18 @@ function MarketCandles({
   resetKey: number;
 }) {
   const descriptionId = useId();
+  const canvasId = `${descriptionId}-canvas`;
+  const resizeHintId = `${descriptionId}-resize-help`;
   const canvasRef = useRef<HTMLDivElement>(null);
+  const chartResizeRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startHeight: number;
+    previousHeight: number | null;
+  } | null>(null);
+  const [userChartHeight, setUserChartHeight] = useState<number | null>(null);
+  const [observedChartHeight, setObservedChartHeight] = useState(340);
+  const [chartResizing, setChartResizing] = useState(false);
   const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const linesRef = useRef<IPriceLine[]>([]);
@@ -3296,6 +3381,29 @@ function MarketCandles({
           maximumFractionDigits: 2,
         }).format(value)
       : formatMoney(value, value < 0.01 ? 8 : value < 1 ? 5 : 2);
+  const clampChartHeight = (height: number) =>
+    Math.max(340, Math.min(1000, Math.round(height)));
+  const finishChartResize = (element: HTMLDivElement, cancelled = false) => {
+    const drag = chartResizeRef.current;
+    if (!drag) return;
+    chartResizeRef.current = null;
+    setChartResizing(false);
+    if (cancelled) setUserChartHeight(drag.previousHeight);
+    if (element.hasPointerCapture(drag.pointerId))
+      element.releasePointerCapture(drag.pointerId);
+  };
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element) return;
+    const measure = () =>
+      setObservedChartHeight(
+        Math.round(element.getBoundingClientRect().height),
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     setHistory(null);
@@ -3383,7 +3491,7 @@ function MarketCandles({
     const chart = createChart(element, {
       autoSize: true,
       layout: {
-        background: { type: ColorType.Solid, color: "#101014" },
+        background: { type: ColorType.Solid, color: "#060510" },
         textColor: "#8c8c99",
         fontFamily: "Inter, ui-sans-serif, sans-serif",
         fontSize: 11,
@@ -3576,6 +3684,13 @@ function MarketCandles({
     <div
       className="pt-candle-chart"
       data-history-source={history?.source || ""}
+      style={
+        userChartHeight === null
+          ? undefined
+          : ({
+              "--user-chart-height": `${userChartHeight}px`,
+            } as CSSProperties)
+      }
     >
       <div className="pt-ohlc">
         <span>
@@ -3601,6 +3716,7 @@ function MarketCandles({
       <div className="pt-chart-stage">
         <div
           ref={canvasRef}
+          id={canvasId}
           className="pt-chart-canvas"
           role="group"
           aria-label={`${pool.pair} ${chartUnit === "MCap" ? "market cap" : "price"} chart, ${timeframe}`}
@@ -3627,6 +3743,86 @@ function MarketCandles({
           </div>
         )}
       </div>
+      <div
+        className={`pt-chart-resize ${chartResizing ? "is-dragging" : ""}`}
+        role="separator"
+        aria-label="Resize price chart"
+        aria-orientation="horizontal"
+        aria-controls={canvasId}
+        aria-describedby={resizeHintId}
+        aria-valuemin={340}
+        aria-valuemax={1000}
+        aria-valuenow={observedChartHeight}
+        aria-valuetext={`${observedChartHeight} pixels high`}
+        tabIndex={0}
+        onPointerDown={(event) => {
+          if (event.button !== 0 || chartResizeRef.current) return;
+          event.preventDefault();
+          chartResizeRef.current = {
+            pointerId: event.pointerId,
+            startY: event.clientY,
+            startHeight: canvasRef.current?.clientHeight || observedChartHeight,
+            previousHeight: userChartHeight,
+          };
+          event.currentTarget.focus({ preventScroll: true });
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setChartResizing(true);
+        }}
+        onPointerMove={(event) => {
+          const drag = chartResizeRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          event.preventDefault();
+          setUserChartHeight(
+            clampChartHeight(drag.startHeight + event.clientY - drag.startY),
+          );
+        }}
+        onPointerUp={(event) => {
+          if (chartResizeRef.current?.pointerId === event.pointerId)
+            finishChartResize(event.currentTarget);
+        }}
+        onPointerCancel={(event) => {
+          if (chartResizeRef.current?.pointerId === event.pointerId)
+            finishChartResize(event.currentTarget, true);
+        }}
+        onLostPointerCapture={(event) => {
+          const drag = chartResizeRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          chartResizeRef.current = null;
+          setChartResizing(false);
+          setUserChartHeight(drag.previousHeight);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && chartResizeRef.current) {
+            event.preventDefault();
+            event.stopPropagation();
+            finishChartResize(event.currentTarget, true);
+            return;
+          }
+          const currentHeight =
+            canvasRef.current?.clientHeight || observedChartHeight;
+          const step = event.shiftKey ? 80 : 24;
+          const next =
+            event.key === "ArrowUp"
+              ? currentHeight - step
+              : event.key === "ArrowDown"
+                ? currentHeight + step
+                : event.key === "Home"
+                  ? 340
+                  : event.key === "End"
+                    ? 1000
+                    : null;
+          if (next !== null) {
+            event.preventDefault();
+            setUserChartHeight(clampChartHeight(next));
+          }
+        }}
+      >
+        <span aria-hidden="true" />
+      </div>
+      <p id={resizeHintId} className="bin-range-sr-only">
+        Drag to resize the chart. Up and Down adjust by 24 pixels, or 80 with
+        Shift. Home sets 340 pixels; End sets 1000. Escape cancels a drag.
+      </p>
       <div className="pt-chart-source">
         <span>{history?.source || "Price / USD"}</span>
         <span>
