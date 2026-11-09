@@ -1,0 +1,86 @@
+[
+  {
+    "id": "stonk-sol",
+    "count": 1941,
+    "file": "/history/stonk-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-08T10:31:58.994Z"
+  },
+  {
+    "id": "sol-usdc",
+    "count": 1717,
+    "file": "/history/sol-usdc.json",
+    "stale": true,
+    "updatedAt": "2026-11-07T15:52:35.479Z"
+  },
+  {
+    "id": "jup-sol",
+    "count": 1999,
+    "file": "/history/jup-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-08T15:26:31.472Z"
+  },
+  {
+    "id": "bonk-sol",
+    "count": 1999,
+    "file": "/history/bonk-sol.json",
+    "stale": false,
+    "updatedAt": "2026-11-08T15:27:07.486Z"
+  },
+  {
+    "id": "ray-sol",
+    "count": 1999,
+    "file": "/history/ray-sol.json",
+    "stale": false,
+    "updatedAt": "2026-11-08T15:27:09.210Z"
+  },
+  {
+    "id": "jitosol-sol",
+    "count": 239,
+    "file": "/history/jitosol-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-02T12:53:11.240Z"
+  },
+  {
+    "id": "nvdax-sol",
+    "count": 704,
+    "file": "/history/nvdax-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-04T03:38:19.363Z"
+  },
+  {
+    "id": "float-sol",
+    "count": 1963,
+    "file": "/history/float-sol.json",
+    "stale": false,
+    "updatedAt": "2026-11-08T15:27:13.966Z"
+  },
+  {
+    "id": "ttwo-usdc",
+    "count": 728,
+    "file": "/history/ttwo-usdc.json",
+    "stale": true,
+    "updatedAt": "2026-11-06T13:14:58.326Z"
+  },
+  {
+    "id": "met-sol",
+    "count": 1581,
+    "file": "/history/met-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-08T07:42:35.881Z"
+  },
+  {
+    "id": "trump-usdc",
+    "count": 1999,
+    "file": "/history/trump-usdc.json",
+    "stale": false,
+    "updatedAt": "2026-11-08T15:27:17.768Z"
+  },
+  {
+    "id": "gta6-sol",
+    "count": 785,
+    "file": "/history/gta6-sol.json",
+    "stale": true,
+    "updatedAt": "2026-11-07T16:30:17.171Z"
+  }
+]

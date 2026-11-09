@@ -1,0 +1,28 @@
+{
+  "flozzyboy": {
+    "handle": "flozzyboy",
+    "displayName": "Floz",
+    "followersCount": 1,
+    "avatarKey": null,
+    "avatarUrl": "/profiles/flozzyboy/avatar?v=1793216872",
+    "asset": "/creators/flozzyboy.jpg",
+    "resolvedSource": "https://app.poolers.xyz/api/profiles/flozzyboy/avatar?v=1793216872"
+  },
+  "lp_farmer": {
+    "handle": "lp_farmer",
+    "displayName": "Farmer",
+    "followersCount": 0,
+    "avatarKey": null,
+    "avatarUrl": "/profiles/lp_farmer/avatar?v=1793821515",
+    "asset": "/creators/lp_farmer.jpg",
+    "resolvedSource": "https://app.poolers.xyz/api/profiles/lp_farmer/avatar?v=1793821515"
+  },
+  "koocha": {
+    "handle": "koocha",
+    "displayName": "koocha",
+    "followersCount": 0,
+    "avatarKey": "LP",
+    "avatarUrl": null,
+    "asset": null
+  }
+}

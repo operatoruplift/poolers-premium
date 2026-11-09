@@ -1,0 +1,182 @@
+{
+  "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": {
+    "url": "https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I",
+    "path": "/tokens/bonk.jpg",
+    "bytes": 48373,
+    "symbol": "Bonk"
+  },
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": {
+    "url": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+    "path": "/tokens/usdc.png",
+    "bytes": 9276,
+    "symbol": "USDC"
+  },
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": {
+    "url": "https://coin-images.coingecko.com/coins/images/325/small/Tether.png",
+    "path": "/tokens/usdt.png",
+    "bytes": 2160,
+    "symbol": "USDT"
+  },
+  "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN": {
+    "url": "https://static.jup.ag/jup/icon.png",
+    "path": "/tokens/jup.png",
+    "bytes": 28312,
+    "symbol": "JUP"
+  },
+  "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL": {
+    "url": "https://assets.meteora.ag/met-token.svg",
+    "path": "/tokens/met.svg",
+    "bytes": 2367,
+    "symbol": "MET"
+  },
+  "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb": {
+    "url": "https://xstocks-metadata.backed.fi/logos/tokens/SPCXx.png",
+    "path": "/tokens/spcx.png",
+    "bytes": 17947,
+    "symbol": "SPCX"
+  },
+  "So11111111111111111111111111111111111111112": {
+    "url": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+    "path": "/tokens/sol.png",
+    "bytes": 32126,
+    "symbol": "SOL"
+  },
+  "2j5SaS7xy776qCBpyPQbZjyQSAtKiFgrwjfErthnW2ZM": {
+    "url": "https://axiomtrading-v2.axiom-cdn.io/BoUkJMzJqhGjGq84D79NhmkWgvcyzmS7A8vjEkMdBAGS.webp",
+    "path": "/tokens/claudia.webp",
+    "bytes": 9768,
+    "symbol": "CLAUDIA"
+  },
+  "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh": {
+    "url": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh/logo.png",
+    "path": "/tokens/wbtc.png",
+    "bytes": 9820,
+    "symbol": "WBTC"
+  },
+  "4kjruqGHDsSqkMdFfCjV7Vb62HPFhtXyWc2t6JpQzDnz": {
+    "url": "https://gateway.irys.xyz/BrrVpKz9tVFg1sbjmV2fNgMhYKuUPBggTsmBar6T4ino",
+    "path": "/tokens/gta6.png",
+    "bytes": 95840,
+    "symbol": "GTA6"
+  },
+  "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx": {
+    "url": "https://static.datapi.jup.ag/images/asset-icon/stonk.webp",
+    "path": "/tokens/stonk.webp",
+    "bytes": 2128,
+    "symbol": "STONK"
+  },
+  "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN": {
+    "url": "https://arweave.net/VQrPjACwnQRmxdKBTqNwPiyo65x7LAT773t8Kd7YBzw",
+    "path": "/tokens/trump.jpg",
+    "bytes": 1526550,
+    "symbol": "TRUMP"
+  },
+  "87CQtouHSb6YCXaPZ1pp8jD56VudRMXBVqU3oDMD1UJT": {
+    "url": "https://axiom-sol-v2.sfo3.cdn.digitaloceanspaces.com/8EYL6RxqjKGK6h98caFnKXkqUvY3ymgpnMufQLBipump.webp",
+    "path": "/tokens/jos.webp",
+    "bytes": 50758,
+    "symbol": "Jos\u00e9"
+  },
+  "98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g": {
+    "url": "https://arweave.net/QBRdRop8wI4PpScSRTKyibv-fQuYBua-WOvC7tuJyJo",
+    "path": "/tokens/hype.png",
+    "bytes": 11031,
+    "symbol": "HYPE"
+  },
+  "BPxxfRCXkUVhig4HS1Lh7kZqV6SPJhzfEk4x6fVBjPCy": {
+    "url": "https://trek-labs.github.io/heart-metadata/bp/bp.png",
+    "path": "/tokens/bp.png",
+    "bytes": 63817,
+    "symbol": "BP"
+  },
+  "Bv1a7cEj5aRnJQhMw4kRQqAFesMSd5LwcDnUzq52BMmr": {
+    "url": "https://gateway.pinata.cloud/ipfs/bafybeia4zlazqj7yvf3u2yvm3prs4di67m4hjtm4ytms4vgzseu6sldbma",
+    "path": "/tokens/float.png",
+    "bytes": 1228876,
+    "symbol": "FLOAT"
+  },
+  "C5xph2yL6gMdxmuLGxJBkGpmuDFfyi5fqkBNhvL6pump": {
+    "url": "https://axiomtrading-v2.axiom-cdn.io/FQtqFpHSnAUcXrtXpFHL9EpjoF6FAmrXwQpWd1FMpump.webp",
+    "path": "/tokens/btc.webp",
+    "bytes": 28844,
+    "symbol": "BTC"
+  },
+  "CWZ6BsdnjkDVTGkmL6bGbJXXig6ceef12KvyGQW14cMt": {
+    "url": "https://gateway.pinata.cloud/ipfs/bafkreifoqhlalk2dppfyedcn5elcpbsu4mnqo2zn6sn7lbq5hdt4i3s7xu",
+    "path": "/tokens/antfun.png",
+    "bytes": 14552,
+    "symbol": "ANTFUN"
+  },
+  "D4BPL1zvhhJbxUdgi2qVUtjx4jeQWyUr2PAUjKc9rN5x": {
+    "url": "https://gateway.pinata.cloud/ipfs/bafybeig3x5qwv6wvntnsexc766nxcgd5eko4tml4wjpp5w3mgx5h4onscm",
+    "path": "/tokens/musk.png",
+    "bytes": 3922108,
+    "symbol": "MUSK"
+  },
+  "DGuudmnJZ6yeFJTQEM1FgFeWB7dz2mo8sqjRqDWDfhLn": {
+    "url": "https://assets.diversifi.trade/basket_images/diversifi/privacy.png",
+    "path": "/tokens/privacy.png",
+    "bytes": 171589,
+    "symbol": "PRIVACY"
+  },
+  "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
+    "url": "https://static.datapi.jup.ag/images/asset-icon/zcat.jpeg",
+    "path": "/tokens/zcat.jpg",
+    "bytes": 148023,
+    "symbol": "ZCAT"
+  },
+  "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": {
+    "url": "https://storage.googleapis.com/token-metadata/JitoSOL-256.png",
+    "path": "/tokens/jitosol.png",
+    "bytes": 50589,
+    "symbol": "JitoSOL"
+  },
+  "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v": {
+    "url": "https://cdn.tesseralab.co/tessera/tokenicon_T-SpaceX.svg",
+    "path": "/tokens/tspacex.svg",
+    "bytes": 1052,
+    "symbol": "tSpaceX"
+  },
+  "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo": {
+    "url": "https://backpack.exchange/api/stock-logo/TTWO",
+    "path": "/tokens/ttwo.png",
+    "bytes": 3764,
+    "symbol": "TTWO"
+  },
+  "WXMRyRZhsa19ety5erZhHg4N3xj3EVN92u94422teJp": {
+    "url": "https://wxmr.io/xmr.png",
+    "path": "/tokens/xmr.png",
+    "bytes": 70362,
+    "symbol": "XMR"
+  },
+  "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh": {
+    "url": "https://xstocks-metadata.backed.fi/logos/tokens/NVDAx.png",
+    "path": "/tokens/nvdax.png",
+    "bytes": 23218,
+    "symbol": "NVDAx"
+  },
+  "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij": {
+    "url": "https://gateway.pinata.cloud/ipfs/QmZ7L8yd5j36oXXydUiYFiFsRHbi3EdgC4RuFwvM7dcqge",
+    "path": "/tokens/cbbtc.png",
+    "bytes": 22605,
+    "symbol": "cbBTC"
+  },
+  "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn": {
+    "url": "https://gateway.pinata.cloud/ipfs/bafkreibyb3hcn7gglvdqpmklfev3fut3eqv3kje54l3to3xzxxbgpt5wjm",
+    "path": "/tokens/pump.png",
+    "bytes": 56627,
+    "symbol": "PUMP"
+  },
+  "ysPp2Bt2j2UQu2tZwtSJz7JxyrmQ8GJcNJE5NyDoS5a": {
+    "url": "https://assets.diversifi.trade/basket_images/diversifi/musk4.svg",
+    "path": "/tokens/musk4.svg",
+    "bytes": 281634,
+    "symbol": "MUSK4"
+  },
+  "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R": {
+    "url": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R/logo.png",
+    "path": "/tokens/ray.png",
+    "bytes": 45090,
+    "symbol": "RAY"
+  }
+}

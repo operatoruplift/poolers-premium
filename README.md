@@ -1,8 +1,8 @@
-# Poolers — premium interface concept
+# Poolers interface
 
-A usable interactive redesign of [app.poolers.xyz](https://app.poolers.xyz), with a sharp purple P identity, a product landing page, an Aurora-inspired registration experience, and a three-column liquidity workspace.
+A React redesign of [app.poolers.xyz](https://app.poolers.xyz), with Poolers token artwork, captured market history, bin-based strategy controls, and a landing page informed by [swap.io](https://swap.io/).
 
-## Run locally
+## Run
 
 ```sh
 npm ci
@@ -14,33 +14,39 @@ npm run build
 npm run preview
 ```
 
-Requires Node.js 22.12+ or 24. The Vercel project uses the included Vite configuration and SPA rewrite, so `/signup` works on direct navigation.
+Use Node.js 22.12+ or 24. Vercel builds the Vite app and serves `dist`; SPA rewrites support direct entry to every interface.
 
 ## Interfaces
 
-- `/` — responsive landing page, terminal preview, product introduction and FAQs.
-- `/app` — pool terminal with discovery, categories, charts, strategy composition, and participation flows. Portfolio and profile are available in the app navigation.
-- `/app/portfolio` and `/app/profile` — direct entry to the portfolio and profile interfaces.
-- `/signup` — video-backed, three-step registration preview with input validation, password visibility, preferences and profile review.
+- `/` — landing page with a scroll-linked transition into the product view, distribution controls, and FAQs.
+- `/app` — pool and strategy discovery, market charts, range composition, and position management.
+- `/app/portfolio` — portfolio, available funds, deposits, withdrawals, and activity.
+- `/app/profile` — profile preferences, created/joined positions, and activity.
+- `/signup` — three-step profile setup using the requested background video without overlays.
 
-All application components live in `src/App.tsx`; all styles live in `src/index.css`. React 19, Tailwind CSS v4, Motion and Lucide are used. `src/main.tsx` only mounts the app.
+Application components live in `src/App.tsx`; styles live in `src/index.css`. React, Tailwind CSS v4, Motion, Lucide, and TradingView Lightweight Charts provide the interface.
 
-## Brand
+## Controls
 
-The purple P monogram adapts the attached visual direction. The clean, scalable mark is `public/poolers-mark.svg`; `public/poolers-logo.png` is the generated glossy rendition. The video uses the exact CloudFront source requested in the brief, without an overlay or tint.
+- Social LP profit: 5–25%, 1% steps, pointer capture, and keyboard support.
+- Price range: original bin-price math, two non-crossing drag handles, direct price entry, and one-bin +/- controls.
+- Allocation: balanced, base-only, or quote-only presets. Shape and selected bins update together.
+- Price chart: original OHLC history, volume, crosshair, pan, zoom, timeframe aggregation, price/market-cap views, and linked minimum/maximum price lines.
 
-## Usable application mockup
+## Data and local interactions
 
-The app follows the original product structure: pool/strategy discovery on the left, market charts and strategy activity in the center, and a strategy composer on the right. On phones, Discover / Market / Create panels provide access to the same controls.
+Token and creator artwork comes from public URLs resolved by the original Poolers app. `public/tokens/sources.json` and `public/creators/sources.json` record provenance. Market, strategy, and OHLC records were captured on 8 November 2026; the chart displays its source timestamp. Historical files retain upstream stale/partial metadata. These records do not update in real time.
 
-Try a demo wallet to create and join strategies, close or exit positions, deposit or withdraw simulated USDC, edit your profile, follow creators, and inspect your activity. Balances and positions update together. Demo state is versioned and saved only in this browser under `poolers.premium.workspace.v1`. Reset demo restores the sample workspace.
+The local wallet, position actions, funding controls, follows, and profile changes update browser storage under `poolers.workspace.v2`. They do not connect a real wallet, request signatures, submit transactions, or write to the original Poolers backend. Reset workspace restores the initial state. Profile setup does not persist a password.
 
-All application behavior is implemented in editable React source. The original site's compiled runtime and backend are not copied or proxied.
+The purple P is rendered as an inline vector in the interface. The matching standalone asset is `public/poolers-mark.svg`.
 
-## Mockup boundary
+## Review and attribution
 
-This is an interactive mockup with illustrative market data and simulated funds. It does not execute transactions, request signatures, or connect a real wallet. Registration validates and previews a profile in React memory only; it never persists a password. OAuth, live accounts, and protocol integrations are outside the mockup scope. The login link opens the existing Poolers website.
+The design pass used [UX Audit by paulunemoon](https://github.com/paulunemoon/ux-audit-skill) and [Unslop by Damir Sokolovsky](https://github.com/heydamir/unslop). Unslop is licensed under CC BY 4.0; this credit is retained for the applied workflow. The evidence and prioritized changes are in `ux-audit-terminal-2026-11-08.md`.
+
+TradingView Lightweight Charts is Apache 2.0 licensed. Its chart attribution remains visible. See `THIRD_PARTY_NOTICES.md` for third-party references.
 
 ## Deployment
 
-Vercel runs `npm run build` and serves `dist`. No environment variables are required. The deployed source is pushed to `operatoruplift/poolers-premium`; Git-based deployments can be created from that repository. Continuous deployment requires connecting it in Vercel Settings → Git.
+Source repository: [operatoruplift/poolers-premium](https://github.com/operatoruplift/poolers-premium). No environment variables are required. Vercel deployments can build a specific Git commit; continuous deployment requires connecting the repository in project Settings → Git.

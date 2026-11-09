@@ -1,19 +1,42 @@
 import {
+  createChart,
+  CandlestickSeries,
+  HistogramSeries,
+  ColorType,
+  CrosshairMode,
+  LineStyle,
+  type UTCTimestamp,
+  type ISeriesApi,
+  type IPriceLine,
+  type MouseEventParams,
+  type Time,
+  type AutoscaleInfo,
+} from "lightweight-charts";
+import strategyCatalog from "../public/strategy-catalog.json";
+import marketCatalog from "../public/market-catalog.json";
+import {
   useEffect,
   useId,
   useRef,
+  useMemo,
+  type KeyboardEvent as RangeKeyboardEvent,
+  type PointerEvent as RangePointerEvent,
   useState,
   type FormEvent,
   type ReactNode,
 } from "react";
-import { motion, MotionConfig } from "motion/react";
+import {
+  motion,
+  MotionConfig,
+  useScroll,
+  useTransform,
+  useReducedMotion,
+} from "motion/react";
 import {
   ArrowDownLeft,
-  ChartNoAxesCombined,
   CheckCircle2,
   Clock3,
   Copy,
-  Flame,
   Pencil,
   RotateCcw,
   SlidersHorizontal,
@@ -24,20 +47,18 @@ import {
   ChevronDown,
   ChevronRight,
   Chrome,
-  CircleHelp,
-  Compass,
   Eye,
   EyeOff,
   Github,
   Layers3,
   Menu,
   Plus,
+  Minus,
   Search,
   ShieldCheck,
   Sparkles,
   Users,
   Wallet,
-  Waves,
   X,
 } from "lucide-react";
 
@@ -59,7 +80,7 @@ export default function App() {
         ? "Join Poolers — Aurora Sign Up"
         : path.startsWith("/app")
           ? "Poolers — Your liquidity workspace"
-          : "Poolers — Everyone is an LP.";
+          : "Poolers — Everyone is an LP";
   }, [path]);
   const launchApp = () => navigate("/app");
   return (
@@ -111,7 +132,7 @@ function BrandMark({ size = 38 }: { size?: number }) {
         d={`${outline} ${cutout}`}
         fillRule="evenodd"
         clipPath={`url(#brand-clip-${id})`}
-        fill={`url(#brand-${id})`}
+        fill="#a98af5"
       />
     </svg>
   );
@@ -153,16 +174,16 @@ function SignUp({
   });
   const heading =
     step === 1
-      ? "Create New Profile"
+      ? "Create profile"
       : step === 2
-        ? "Make it your space"
-        : "Your next chapter starts here";
+        ? "Preferences"
+        : "Review profile";
   const subtitle =
     step === 1
-      ? "Input your basic details to begin the journey."
+      ? "Add your account details"
       : step === 2
-        ? "A few details to personalize your Poolers experience."
-        : "Take a moment to review your profile.";
+        ? "Choose your preferences"
+        : "Check your details before continuing";
   const register = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -229,30 +250,16 @@ function SignUp({
               Join Poolers
             </h1>
             <p className="text-white/60 text-sm leading-relaxed px-4">
-              Follow these 3 quick phases to activate your space.
+              Complete your profile in three steps
             </p>
           </motion.div>
           <motion.div variants={reveal} className="space-y-3">
-            <StepItem
-              number={1}
-              text="Register your identity"
-              active={step === 1}
-            />
-            <StepItem
-              number={2}
-              text="Configure your studio"
-              active={step === 2}
-            />
-            <StepItem
-              number={3}
-              text="Finalize your profile"
-              active={step === 3}
-            />
+            <StepItem number={1} text="Account details" active={step === 1} />
+            <StepItem number={2} text="Preferences" active={step === 2} />
+            <StepItem number={3} text="Review profile" active={step === 3} />
           </motion.div>
         </motion.div>
-        <div className="signup-caption absolute bottom-7 left-0 w-full text-center z-10">
-          A little clarity. A world of possibility.
-        </div>
+        <div className="signup-caption absolute bottom-7 left-0 w-full text-center z-10"></div>
       </aside>
       <section className="flex-1 flex flex-col items-center justify-center py-12 lg:py-6 px-4 sm:px-12 lg:px-16 xl:px-24 overflow-y-auto lg:overflow-hidden">
         <button
@@ -279,18 +286,12 @@ function SignUp({
               </span>
               <p className="eyebrow">YOU'RE READY TO EXPLORE</p>
               <h1 ref={stepHeading} tabIndex={-1}>
-                Welcome to your next move, {profile.firstName}.
+                Profile saved, {profile.firstName}
               </h1>
-              <p>
-                Your profile preview is ready. Explore the Poolers interface and
-                discover your next strategy.
-              </p>
+              <p>Profile saved</p>
               <div className="signup-preview-notice">
                 <ShieldCheck size={18} />
-                <span>
-                  This is a design preview. No account has been created and no
-                  password has been stored.
-                </span>
+                <span>Your password is not saved</span>
               </div>
               <button
                 type="button"
@@ -304,7 +305,7 @@ function SignUp({
             <>
               <header aria-live="polite">
                 <div className="signup-eyebrow">
-                  <span /> YOUR POOLERS JOURNEY{" "}
+                  <span /> Profile setup{" "}
                   <span className="ml-auto">0{step} / 03</span>
                 </div>
                 <h2
@@ -324,7 +325,7 @@ function SignUp({
                       label="Google"
                       onClick={() =>
                         setNotice(
-                          "Google sign-in is not connected in this design preview. You can explore the three-step flow using the form below.",
+                          "Use the form to set up your profile, or open the workspace to connect a wallet",
                         )
                       }
                     />
@@ -333,7 +334,7 @@ function SignUp({
                       label="Github"
                       onClick={() =>
                         setNotice(
-                          "GitHub sign-in is not connected in this design preview. You can explore the three-step flow using the form below.",
+                          "Use the form to set up your profile, or open the workspace to connect a wallet",
                         )
                       }
                     />
@@ -364,7 +365,7 @@ function SignUp({
                     </div>
                     <InputGroup
                       label="Email"
-                      placeholder="you@example.com"
+                      placeholder="you@domain.com"
                       type="email"
                       name="email"
                       autoComplete="email"
@@ -504,10 +505,7 @@ function SignUp({
                   </div>
                   <div className="signup-preview-notice">
                     <Sparkles size={18} />
-                    <span>
-                      Explore freely. This preview uses sample data and does not
-                      connect a wallet or create a live account.
-                    </span>
+                    <span>Your preferences are saved in this browser</span>
                   </div>
                   <button
                     className="signup-submit"
@@ -526,8 +524,7 @@ function SignUp({
                 </div>
               )}
               <p className="signup-legal">
-                <ShieldCheck size={13} /> Design preview · Your password is
-                never saved.
+                <ShieldCheck size={13} /> Your password is never saved.
               </p>
             </>
           )}
@@ -584,7 +581,7 @@ function PreviewNotice({
           <X size={18} />
         </button>
         <BrandMark size={46} />
-        <h2 id="notice-title">A look at what's next.</h2>
+        <h2 id="notice-title">Profile setup</h2>
         <p>{message}</p>
         <button type="button" className="signup-submit" onClick={onClose}>
           Continue exploring
@@ -595,319 +592,373 @@ function PreviewNotice({
 }
 
 function PoolersHome({ onSignUp }: { onSignUp: () => void }) {
+  const opening = useRef<HTMLElement>(null);
+  const nav = useRef<HTMLElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [faq, setFaq] = useState<number | null>(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [distribution, setDistribution] = useState("Spot");
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: opening,
+    offset: ["start start", "end end"],
+  });
+  const copyOpacity = useTransform(scrollYProgress, (value) =>
+    value <= 0.16 ? 1 : Math.max(0, 1 - (value - 0.16) / 0.3),
+  );
+  const copyY = useTransform(scrollYProgress, [0, 0.5], ["0vh", "-9vh"]);
+  const copyScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.93]);
+  const windowY = useTransform(
+    scrollYProgress,
+    [0, 0.78, 1],
+    ["8vh", "-35vh", "-36vh"],
+  );
+  const windowScale = useTransform(scrollYProgress, [0, 0.8], [0.86, 1]);
+  const windowOpacity = useTransform(scrollYProgress, [0, 0.42], [0.68, 1]);
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
   const questions = [
     [
       "What is Poolers?",
-      "Poolers is a workspace for discovering Solana liquidity pools, exploring LP strategies, and following the people behind them. It brings your liquidity positions into one clearer view.",
+      "Poolers is a workspace for Solana liquidity providers. Discover pools, create price-range strategies, and manage your positions.",
     ],
     [
-      "Do I need to be an experienced LP?",
-      "You can explore the interface and compare strategies before getting started. Each strategy should be reviewed carefully: providing liquidity involves market risk and impermanent loss.",
+      "How do shared strategies work?",
+      "A strategy defines a pool, a price range, and a liquidity distribution. Other LPs can join the same strategy and follow its positioning.",
     ],
     [
-      "Can I try the platform before connecting a wallet?",
-      "Yes. This interactive preview lets you explore sample pools, time periods, and strategies without connecting a wallet. The figures shown are illustrative demo data.",
+      "Which distributions can I use?",
+      "Choose Spot for a uniform distribution, Curve for more liquidity near the active price, or Bid Ask for more liquidity toward the edges.",
     ],
     [
-      "What happens when I get started?",
-      "You will enter the interactive Poolers workspace. Try the demo wallet, create and join strategies, and explore your portfolio. All balances and actions are simulated.",
+      "What is the creator fee?",
+      "The creator fee is a share of followers’ strategy profits. Set it when creating a strategy, then review it before joining someone else’s.",
     ],
   ];
+
   useEffect(() => {
-    const close = (event: KeyboardEvent) => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
     };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, []);
+    const onPointer = (event: PointerEvent) => {
+      if (!nav.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [menuOpen]);
+
   const goTo = (id: string) => {
     setMenuOpen(false);
-    document
-      .getElementById(id)
-      ?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "auto"
-          : "smooth",
-        block: "start",
+    document.getElementById(id)?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
+  const showWorkspace = () => {
+    const section = opening.current;
+    if (section)
+      window.scrollTo({
+        top: section.offsetTop + section.offsetHeight - window.innerHeight,
+        behavior: reducedMotion ? "auto" : "smooth",
       });
   };
+
   return (
-    <div className="ph-landing">
-      <nav className="ph-nav" aria-label="Main navigation">
-        <a className="ph-brand" href="#" aria-label="Poolers home">
-          <BrandMark size={36} />
-          <span>
-            poolers<span className="ph-brand-dot">.</span>
-          </span>
-        </a>
-        <div className="ph-nav-links">
-          <button onClick={() => goTo("platform")}>The platform</button>
-          <button onClick={() => goTo("how-it-works")}>How it works</button>
-          <button onClick={() => goTo("community")}>For everyone</button>
+    <div className="pl-home" data-reduced-motion={reducedMotion || undefined}>
+      <nav ref={nav} className="pl-nav" aria-label="Main navigation">
+        <button
+          className="pl-brand"
+          aria-label="Poolers home"
+          onClick={() =>
+            window.scrollTo({
+              top: 0,
+              behavior: reducedMotion ? "auto" : "smooth",
+            })
+          }
+        >
+          <BrandMark size={34} />
+          <span>poolers</span>
+        </button>
+        <div className="pl-nav-links">
+          <button onClick={() => goTo("protocol")}>Protocol</button>
+          <button onClick={() => goTo("strategies")}>Strategies</button>
           <button onClick={() => goTo("faqs")}>FAQs</button>
         </div>
-        <div className="ph-nav-actions">
-          <span className="ph-built-on">
-            <span className="ph-solana-lines">
-              <i />
-              <i />
-              <i />
-            </span>
-            Built on Solana
-          </span>
-          <button className="ph-nav-cta" onClick={onSignUp}>
+        <div className="pl-nav-actions">
+          <button className="pl-launch pl-nav-launch" onClick={onSignUp}>
             Open app <ArrowUpRight size={15} />
           </button>
           <button
-            className="ph-menu-button"
+            className="pl-menu-toggle"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={menuOpen}
+            aria-controls="pl-mobile-menu"
           >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            {menuOpen ? <X size={21} /> : <Menu size={21} />}
           </button>
         </div>
+        {menuOpen && (
+          <div id="pl-mobile-menu" className="pl-mobile-menu">
+            <button onClick={() => goTo("protocol")}>
+              Protocol <ArrowUpRight size={15} />
+            </button>
+            <button onClick={() => goTo("strategies")}>
+              Strategies <ArrowUpRight size={15} />
+            </button>
+            <button onClick={() => goTo("faqs")}>
+              FAQs <ArrowUpRight size={15} />
+            </button>
+            <button onClick={onSignUp}>
+              Open app <ArrowUpRight size={15} />
+            </button>
+          </div>
+        )}
       </nav>
-      {menuOpen && (
-        <div className="ph-mobile-menu">
-          <button onClick={() => goTo("platform")}>
-            The platform <ArrowRight size={16} />
-          </button>
-          <button onClick={() => goTo("how-it-works")}>
-            How it works <ArrowRight size={16} />
-          </button>
-          <button onClick={() => goTo("community")}>
-            For everyone <ArrowRight size={16} />
-          </button>
-          <button onClick={() => goTo("faqs")}>
-            FAQs <ArrowRight size={16} />
-          </button>
-          <button onClick={onSignUp}>
-            Open app <ArrowUpRight size={16} />
-          </button>
-        </div>
-      )}
-
-      <header className="ph-hero">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65 }}
-          className="ph-eyebrow"
-        >
-          <span className="ph-status-light" />A new current in liquidity
-          <span className="ph-eyebrow-separator" />
-          <ArrowUpRight size={12} />
-        </motion.div>
-        <h1>
-          <span className="ph-headline-mask">
-            <motion.span
-              initial={{ y: "105%" }}
-              animate={{ y: 0 }}
-              transition={{
-                duration: 0.85,
-                delay: 0.08,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              Everyone is an LP.
-            </motion.span>
-          </span>
-          <span className="ph-headline-mask">
-            <motion.span
-              className="ph-headline-accent"
-              initial={{ y: "105%" }}
-              animate={{ y: 0 }}
-              transition={{
-                duration: 0.85,
-                delay: 0.2,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              Including you.
-            </motion.span>
-          </span>
-        </h1>
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-        >
-          Discover thoughtful strategies. Follow experienced LPs.
-          <br className="ph-desktop-break" /> Put your liquidity in good
-          company.
-        </motion.p>
-        <motion.div
-          className="ph-hero-actions"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.52 }}
-        >
-          <button className="ph-primary" onClick={onSignUp}>
-            Start pooling <ArrowUpRight size={18} />
-          </button>
-          <button className="ph-secondary" onClick={() => goTo("platform")}>
-            Explore the platform <ArrowDownLeft size={15} />
-          </button>
-        </motion.div>
-        <motion.div
-          className="ph-hero-note"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <span className="ph-mini-avatars">
-            <span>j</span>
-            <span>m</span>
-            <span>a</span>
-          </span>
-          <span>Made for a more connected kind of LP.</span>
-        </motion.div>
-      </header>
 
       <section
-        className="ph-showcase"
-        id="platform"
-        aria-label="Interactive Poolers platform preview"
+        ref={opening}
+        className="pl-opening"
+        aria-label="Poolers liquidity workspace"
       >
-        <div className="ph-glow ph-glow-purple" />
-        <div className="ph-glow ph-glow-teal" />
-        <div className="ph-dot-field" />
-        <motion.div
-          className="ph-dashboard-bezel ph-terminal-showcase"
-          initial={{ opacity: 0, y: 45 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.5 }}
-        >
-          <button
-            className="ph-terminal-preview-link"
-            onClick={onSignUp}
-            aria-label="Open interactive Poolers workspace"
+        <div className="pl-sticky-stage">
+          <div className="pl-stage-dots" aria-hidden="true" />
+          <div className="pl-edge-light pl-edge-blue" aria-hidden="true" />
+          <div className="pl-edge-light pl-edge-violet" aria-hidden="true" />
+          <motion.div
+            className="pl-hero-copy"
+            style={
+              reducedMotion
+                ? undefined
+                : { opacity: copyOpacity, y: copyY, scale: copyScale }
+            }
           >
-            <picture>
-              <source
-                media="(max-width:700px)"
-                srcSet="/terminal-preview-mobile.png"
-              />
-              <img
-                src="/terminal-preview.png"
-                alt="Poolers terminal with pool discovery, a market chart, strategies and a liquidity composer"
-                width="1440"
-                height="1000"
-                loading="eager"
-              />
-            </picture>
-            <span className="ph-preview-launch">
-              Open the interactive workspace <ArrowUpRight size={16} />
-            </span>
-          </button>
-        </motion.div>
-        <div className="ph-showcase-caption">
-          <span className="ph-caption-line" />
-          <span>LESS FRICTION. MORE FLOW.</span>
-          <span className="ph-caption-line" />
+            <div
+              className="pl-token-marks"
+              aria-label="Solana liquidity markets"
+            >
+              {[
+                { name: "Solana", src: "/tokens/sol.png" },
+                { name: "USD Coin", src: "/tokens/usdc.png" },
+                { name: "Jupiter", src: "/tokens/jup.png" },
+                { name: "Raydium", src: "/tokens/ray.png" },
+                { name: "Jito", src: "/tokens/jitosol.png" },
+              ].map((token) => (
+                <img
+                  key={token.name}
+                  src={token.src}
+                  alt={token.name}
+                  width="34"
+                  height="34"
+                />
+              ))}
+            </div>
+            <h1>Everyone is an LP</h1>
+            <p>
+              Discover Solana pools, set your range,
+              <br />
+              and follow the strategies behind the liquidity.
+            </p>
+            <button className="pl-launch pl-hero-launch" onClick={onSignUp}>
+              Open app <ArrowUpRight size={18} />
+            </button>
+          </motion.div>
+          <motion.div
+            className="pl-product-window"
+            style={
+              reducedMotion
+                ? undefined
+                : { y: windowY, scale: windowScale, opacity: windowOpacity }
+            }
+          >
+            <button
+              className="pl-workspace-link"
+              onClick={onSignUp}
+              aria-label="Open interactive Poolers workspace"
+            >
+              <picture>
+                <source
+                  media="(max-width:700px)"
+                  srcSet="/terminal-preview-mobile.png"
+                />
+                <img
+                  src="/terminal-preview.png"
+                  alt="Poolers workspace with pool discovery, market chart, strategies, and price-range controls"
+                  width="1440"
+                  height="1000"
+                />
+              </picture>
+              <span className="pl-window-action">
+                Open workspace <ArrowUpRight size={16} />
+              </span>
+            </button>
+          </motion.div>
+          <motion.button
+            className="pl-scroll-hint"
+            onClick={showWorkspace}
+            style={reducedMotion ? undefined : { opacity: scrollHintOpacity }}
+          >
+            Explore the workspace <ChevronDown size={19} />
+          </motion.button>
         </div>
       </section>
 
-      <section className="ph-how-section" id="how-it-works">
-        <div className="ph-section-intro">
-          <span className="ph-section-label">A BETTER WAY TO POOL</span>
+      <section className="pl-protocol pl-content-section" id="protocol">
+        <div className="pl-section-heading">
+          <span>01 / Protocol</span>
           <h2>
-            Find your people.
+            Pools, ranges,
             <br />
-            <span>Then find your flow.</span>
+            and positions.
           </h2>
           <p>
-            Liquidity can feel complicated. Your experience doesn’t have to.
+            The controls an LP needs,
+            <br />
+            in one workspace.
           </p>
         </div>
-        <div className="ph-how-steps">
-          {[
-            {
-              number: "01",
-              icon: Compass,
-              title: "Find your starting point.",
-              text: "Discover pools and compare strategies in one thoughtful workspace.",
-            },
-            {
-              number: "02",
-              icon: Users,
-              title: "Follow a little experience.",
-              text: "Explore the ideas and creators behind different liquidity strategies.",
-            },
-            {
-              number: "03",
-              icon: Waves,
-              title: "Keep your own perspective.",
-              text: "See your positions, performance, and fees with a clearer view of it all.",
-            },
-          ].map(({ number, icon: Icon, title, text }) => (
-            <article key={number}>
-              <div className="ph-step-top">
-                <Icon size={23} />
-                <span>{number}</span>
-              </div>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </article>
-          ))}
+        <div className="pl-protocol-steps">
+          <article>
+            <span>01</span>
+            <div>
+              <h3>Choose a pool</h3>
+              <p>
+                Compare liquidity, volume, and fee tiers across Solana markets.
+              </p>
+            </div>
+            <ArrowUpRight size={18} />
+          </article>
+          <article>
+            <span>02</span>
+            <div>
+              <h3>Set your range</h3>
+              <p>Choose your price boundaries and liquidity distribution.</p>
+            </div>
+            <ArrowUpRight size={18} />
+          </article>
+          <article>
+            <span>03</span>
+            <div>
+              <h3>Manage your position</h3>
+              <p>
+                Track fees, join strategies, or close a position from your
+                portfolio.
+              </p>
+            </div>
+            <ArrowUpRight size={18} />
+          </article>
         </div>
       </section>
-      <section className="ph-community" id="community">
-        <div className="ph-community-art" aria-hidden="true">
-          <div className="ph-community-ring" />
-          <div className="ph-community-ring ring-two" />
-          <div className="ph-community-mark">
-            <BrandMark size={100} />
-          </div>
-          <span className="ph-orbit-dot dot-one">j</span>
-          <span className="ph-orbit-dot dot-two">a</span>
-          <span className="ph-orbit-dot dot-three">m</span>
-          <span className="ph-orbit-dot dot-four">s</span>
-        </div>
-        <div>
-          <span className="ph-section-label">IN GOOD COMPANY</span>
+
+      <section className="pl-strategies pl-content-section" id="strategies">
+        <div className="pl-section-heading">
+          <span>02 / Strategies</span>
           <h2>
-            Individual perspectives.
+            Set the shape
             <br />
-            <span>Shared possibilities.</span>
+            of your liquidity.
           </h2>
           <p>
-            For the curious first-timer. The experienced LP. And everyone
-            finding their own way. There’s room for you here.
+            Uniform, concentrated, or weighted
+            <br />
+            toward the edges. The range is yours.
           </p>
-          <button className="ph-primary" onClick={onSignUp}>
-            Find your place <ArrowUpRight size={17} />
+          <button className="pl-text-link" onClick={onSignUp}>
+            Explore strategies <ArrowUpRight size={16} />
           </button>
         </div>
-      </section>
-      <section className="ph-faq-section" id="faqs">
-        <div>
-          <span className="ph-section-label">A LITTLE MORE CLARITY</span>
-          <h2>
-            Good questions.
-            <br />
-            <span>Clear answers.</span>
-          </h2>
-          <p>Everything starts with understanding.</p>
-        </div>
-        <div className="ph-faq-list">
-          {questions.map(([question, answer], index) => (
-            <article className={faq === index ? "is-open" : ""} key={question}>
+        <div className="pl-distribution-panel">
+          <div className="pl-distribution-pair">
+            <span>
+              <img src="/tokens/sol.png" alt="" width="32" height="32" />
+              <img src="/tokens/usdc.png" alt="" width="32" height="32" />
+            </span>
+            <div>
+              <strong>SOL / USDC</strong>
+              <span>Liquidity distribution</span>
+            </div>
+          </div>
+          <div
+            className="pl-distribution-tabs"
+            aria-label="Liquidity distribution"
+          >
+            {["Spot", "Curve", "Bid Ask"].map((shape) => (
               <button
-                aria-expanded={faq === index}
-                aria-controls={`ph-answer-${index}`}
-                onClick={() => setFaq(faq === index ? null : index)}
+                key={shape}
+                className={distribution === shape ? "active" : ""}
+                aria-pressed={distribution === shape}
+                onClick={() => setDistribution(shape)}
+              >
+                {shape}
+              </button>
+            ))}
+          </div>
+          <div
+            className="pl-distribution-chart"
+            role="img"
+            aria-label={`${distribution} liquidity distribution`}
+          >
+            {Array.from({ length: 46 }, (_, index) => {
+              const distance = Math.abs((index - 22.5) / 22.5);
+              const height =
+                distribution === "Spot"
+                  ? 72
+                  : distribution === "Curve"
+                    ? Math.max(8, 82 * (1 - distance))
+                    : Math.max(8, 82 * distance);
+              return (
+                <span
+                  key={index}
+                  style={{
+                    height: `${height}%`,
+                    background: index < 23 ? "#2576ed" : "#9b54e8",
+                  }}
+                />
+              );
+            })}
+            <i />
+          </div>
+          <div className="pl-distribution-axis">
+            <span>Lower price</span>
+            <span>Pool price</span>
+            <span>Higher price</span>
+          </div>
+          <div className="pl-distribution-description">
+            {distribution === "Spot"
+              ? "Equal liquidity across the selected range."
+              : distribution === "Curve"
+                ? "More liquidity near the current pool price."
+                : "More liquidity toward the range boundaries."}
+          </div>
+        </div>
+      </section>
+
+      <section className="pl-faqs pl-content-section" id="faqs">
+        <div className="pl-section-heading">
+          <span>03 / FAQs</span>
+          <h2>Before you pool.</h2>
+        </div>
+        <div className="pl-faq-list">
+          {questions.map(([question, answer], index) => (
+            <article
+              className={openFaq === index ? "active" : ""}
+              key={question}
+            >
+              <button
+                aria-expanded={openFaq === index}
+                aria-controls={`pl-answer-${index}`}
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
               >
                 {question}
                 <Plus size={18} />
               </button>
               <div
-                className="ph-faq-answer"
-                id={`ph-answer-${index}`}
-                inert={faq !== index}
+                className="pl-faq-answer"
+                id={`pl-answer-${index}`}
+                inert={openFaq !== index}
               >
                 <div>
                   <p>{answer}</p>
@@ -917,34 +968,29 @@ function PoolersHome({ onSignUp }: { onSignUp: () => void }) {
           ))}
         </div>
       </section>
-      <footer className="ph-footer">
-        <a className="ph-brand" href="#" aria-label="Poolers home">
-          <BrandMark size={29} />
-          <span>
-            poolers<span className="ph-brand-dot">.</span>
-          </span>
-        </a>
-        <p>A new current in liquidity.</p>
+      <section className="pl-final-cta">
+        <BrandMark size={50} />
+        <h2>Find your pool.</h2>
+        <button className="pl-launch" onClick={onSignUp}>
+          Open app <ArrowUpRight size={17} />
+        </button>
+      </section>
+      <footer className="pl-footer">
         <span>© {new Date().getFullYear()} Poolers</span>
-        <button
-          onClick={() =>
-            window.scrollTo({
-              top: 0,
-              behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-                .matches
-                ? "auto"
-                : "smooth",
-            })
-          }
-        >
-          Back to top <ArrowUpRight size={14} />
+        <div>
+          <button onClick={() => goTo("protocol")}>Protocol</button>
+          <button onClick={() => goTo("strategies")}>Strategies</button>
+          <button onClick={() => goTo("faqs")}>FAQs</button>
+        </div>
+        <button onClick={onSignUp}>
+          Open app <ArrowUpRight size={13} />
         </button>
       </footer>
     </div>
   );
 }
 
-type DemoPool = {
+type PoolMarket = {
   id: string;
   pair: string;
   symbol: string;
@@ -956,147 +1002,55 @@ type DemoPool = {
   apr: number;
   tone: string;
   category: string;
+  address: string;
+  iconX: string | null;
+  iconY: string | null;
+  binStep: number;
+  feePct: number;
+  marketCap: string;
+  marketCapUsd: number;
+  quotePriceUsd: number;
+  pairPrice: number;
+  fees24h: string;
+  feeTvl: number;
 };
-const DEMO_POOLS: DemoPool[] = [
-  {
-    id: "stonk-sol",
-    pair: "STONK / SOL",
-    symbol: "STONK",
-    quote: "SOL",
-    price: 0.07142,
-    change: -3.26,
-    tvl: "$1.80M",
-    volume: "$9.30M",
-    apr: 28.64,
-    tone: "teal",
-    category: "Stocks",
-  },
-  {
-    id: "nvdax-sol",
-    pair: "NVDAx / SOL",
-    symbol: "NVDAx",
-    quote: "SOL",
-    price: 210.57,
-    change: 2.8,
-    tvl: "$89K",
-    volume: "$85K",
-    apr: 16.82,
-    tone: "green",
-    category: "Stocks",
-  },
-  {
-    id: "sol-usdc",
-    pair: "SOL / USDC",
-    symbol: "SOL",
-    quote: "USDC",
-    price: 148.72,
-    change: 4.28,
-    tvl: "$8.42M",
-    volume: "$2.14M",
-    apr: 18.42,
-    tone: "purple",
-    category: "Crypto",
-  },
-  {
-    id: "jup-sol",
-    pair: "JUP / SOL",
-    symbol: "JUP",
-    quote: "SOL",
-    price: 0.8642,
-    change: 6.12,
-    tvl: "$2.68M",
-    volume: "$946K",
-    apr: 26.34,
-    tone: "green",
-    category: "Crypto",
-  },
-  {
-    id: "bonk-sol",
-    pair: "BONK / SOL",
-    symbol: "BONK",
-    quote: "SOL",
-    price: 0.00002468,
-    change: -2.14,
-    tvl: "$4.12M",
-    volume: "$1.86M",
-    apr: 32.76,
-    tone: "orange",
-    category: "Memes",
-  },
-  {
-    id: "usdc-usdt",
-    pair: "USDC / USDT",
-    symbol: "USDC",
-    quote: "USDT",
-    price: 1.0002,
-    change: 0.02,
-    tvl: "$12.64M",
-    volume: "$4.21M",
-    apr: 8.64,
-    tone: "blue",
-    category: "Crypto",
-  },
-  {
-    id: "ray-sol",
-    pair: "RAY / SOL",
-    symbol: "RAY",
-    quote: "SOL",
-    price: 2.184,
-    change: 3.86,
-    tvl: "$3.24M",
-    volume: "$728K",
-    apr: 21.48,
-    tone: "pink",
-    category: "Crypto",
-  },
-  {
-    id: "jitosol-sol",
-    pair: "JitoSOL / SOL",
-    symbol: "JitoSOL",
-    quote: "SOL",
-    price: 172.46,
-    change: 1.72,
-    tvl: "$6.18M",
-    volume: "$512K",
-    apr: 12.86,
-    tone: "teal",
-    category: "Crypto",
-  },
-];
-type DemoToken = "USDC" | "SOL";
-type DemoPosition = {
+const MARKETS: PoolMarket[] = marketCatalog;
+
+type FundingAsset = "USDC" | "SOL";
+type LiquidityPosition = {
   id: string;
   poolId: string;
   title: string;
   units: number;
   usd: number;
-  token: DemoToken;
+  token: FundingAsset;
   kind: "created" | "joined";
   shape: string;
+  side?: string;
   fee: number;
   min: number;
   max: number;
   status: "active" | "closed";
   date: string;
 };
-type DemoEvent = {
+type ActivityEvent = {
   id: string;
   action: string;
   detail: string;
   amount: number;
-  token: DemoToken;
+  token: FundingAsset;
   date: string;
 };
-type DemoWorkspace = {
+type Workspace = {
   version: 1;
   connected: boolean;
   balances: { USDC: number; SOL: number };
-  positions: DemoPosition[];
-  events: DemoEvent[];
+  positions: LiquidityPosition[];
+  events: ActivityEvent[];
   profile: { name: string; handle: string; bio: string };
   following: string[];
 };
-type DemoStrategy = {
+type PoolStrategy = {
   id: string;
   poolId: string;
   title: string;
@@ -1105,67 +1059,17 @@ type DemoStrategy = {
   tone: string;
   apr: number;
   members: number;
+  valueUsd: number;
+  avatar: string | null;
+  creatorFee: number;
+  followersCount: number;
   shape: string;
 };
-const DEMO_STRATEGIES: DemoStrategy[] = [
-  {
-    id: "steady",
-    poolId: "sol-usdc",
-    title: "A steady kind of growth",
-    creator: "marin.lp",
-    initials: "M",
-    tone: "teal",
-    apr: 18.42,
-    members: 128,
-    shape: "Spot",
-  },
-  {
-    id: "balanced",
-    poolId: "sol-usdc",
-    title: "Find the middle ground",
-    creator: "alex.sol",
-    initials: "A",
-    tone: "purple",
-    apr: 21.68,
-    members: 86,
-    shape: "Curve",
-  },
-  {
-    id: "current",
-    poolId: "jup-sol",
-    title: "Follow the current",
-    creator: "jules.lp",
-    initials: "J",
-    tone: "orange",
-    apr: 26.34,
-    members: 64,
-    shape: "Bid Ask",
-  },
-  {
-    id: "stable",
-    poolId: "usdc-usdt",
-    title: "Slow and steady",
-    creator: "marin.lp",
-    initials: "M",
-    tone: "teal",
-    apr: 8.64,
-    members: 214,
-    shape: "Curve",
-  },
-  {
-    id: "wide",
-    poolId: "ray-sol",
-    title: "A wider perspective",
-    creator: "alex.sol",
-    initials: "A",
-    tone: "purple",
-    apr: 21.48,
-    members: 42,
-    shape: "Spot",
-  },
-];
-const DEMO_STORAGE_KEY = "poolers.premium.workspace.v1";
-function newDemoWorkspace(): DemoWorkspace {
+const STRATEGIES: PoolStrategy[] = strategyCatalog;
+const CREATORS = [...new Set(STRATEGIES.map((strategy) => strategy.creator))];
+
+const STORAGE_KEY = "poolers.workspace.v2";
+function newWorkspace(): Workspace {
   return {
     version: 1,
     connected: false,
@@ -1174,7 +1078,7 @@ function newDemoWorkspace(): DemoWorkspace {
       {
         id: "initial-1",
         poolId: "sol-usdc",
-        title: "My balanced perspective",
+        title: "SOL · Spot",
         units: 2400,
         usd: 2400,
         token: "USDC",
@@ -1189,7 +1093,7 @@ function newDemoWorkspace(): DemoWorkspace {
       {
         id: "initial-2",
         poolId: "jup-sol",
-        title: "Follow the current",
+        title: "JUP · Bid Ask",
         units: 800,
         usd: 800,
         token: "USDC",
@@ -1206,7 +1110,7 @@ function newDemoWorkspace(): DemoWorkspace {
       {
         id: "seed",
         action: "Joined strategy",
-        detail: "Follow the current · JUP / SOL",
+        detail: "JUP · Bid Ask · JUP / SOL",
         amount: 800,
         token: "USDC",
         date: "2026-11-05T10:00:00Z",
@@ -1215,14 +1119,14 @@ function newDemoWorkspace(): DemoWorkspace {
     profile: {
       name: "Jamie Carter",
       handle: "jamie.lp",
-      bio: "Finding my flow. One thoughtful position at a time.",
+      bio: "Liquidity provider",
     },
-    following: ["marin.lp"],
+    following: ["flozzyboy"],
   };
 }
-function readDemoWorkspace(): DemoWorkspace {
+function readWorkspace(): Workspace {
   try {
-    const value = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || "null");
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (
       value?.version === 1 &&
       typeof value.connected === "boolean" &&
@@ -1237,8 +1141,8 @@ function readDemoWorkspace(): DemoWorkspace {
       Array.isArray(value.positions) &&
       value.positions.length < 500 &&
       value.positions.every(
-        (p: DemoPosition) =>
-          DEMO_POOLS.some((pool) => pool.id === p.poolId) &&
+        (p: LiquidityPosition) =>
+          MARKETS.some((pool) => pool.id === p.poolId) &&
           Number.isFinite(p.usd) &&
           Number.isFinite(p.units) &&
           ["USDC", "SOL"].includes(p.token) &&
@@ -1251,26 +1155,26 @@ function readDemoWorkspace(): DemoWorkspace {
     )
       return value;
   } catch {
-    /* A new demo can always start without browser storage. */
+    /* A new can always start without browser storage. */
   }
-  return newDemoWorkspace();
+  return newWorkspace();
 }
-function demoMoney(value: number, digits = 2) {
+function formatMoney(value: number, digits = 2) {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(value);
 }
-function demoPrice(value: number) {
-  return "$" + demoMoney(value, value < 0.01 ? 8 : value < 10 ? 4 : 2);
+function formatPrice(value: number) {
+  return "$" + formatMoney(value, value < 0.01 ? 8 : value < 10 ? 4 : 2);
 }
-function demoRound(value: number) {
+function roundAmount(value: number) {
   return Math.round(value * 1000000) / 1000000;
 }
 type TerminalModal =
   | null
   | { kind: "wallet" | "review" | "edit" | "reset" }
-  | { kind: "join"; strategy: DemoStrategy }
+  | { kind: "join"; strategy: PoolStrategy }
   | { kind: "creator"; handle: string }
   | { kind: "fund"; direction: "Deposit" | "Withdraw" }
   | { kind: "exit"; id: string };
@@ -1282,7 +1186,7 @@ function PoolersTerminal({
   onHome: () => void;
   onOnboarding: () => void;
 }) {
-  const [workspace, setWorkspace] = useState<DemoWorkspace>(readDemoWorkspace);
+  const [workspace, setWorkspace] = useState<Workspace>(readWorkspace);
   const [view, setView] = useState<"terminal" | "portfolio" | "profile">(() =>
     window.location.pathname.includes("portfolio")
       ? "portfolio"
@@ -1290,19 +1194,24 @@ function PoolersTerminal({
         ? "profile"
         : "terminal",
   );
-  const [selectedId, setSelectedId] = useState("sol-usdc");
+  const [selectedId, setSelectedId] = useState("stonk-sol");
   const [discovery, setDiscovery] = useState("Pools");
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
-  const [timeframe, setTimeframe] = useState("1H");
+  const [timeframe, setTimeframe] = useState("5m");
   const [marketTab, setMarketTab] = useState("Chart");
   const [activityTab, setActivityTab] = useState("Strategies");
   const [profileTab, setProfileTab] = useState("All positions");
   const [shape, setShape] = useState("Spot");
-  const [fundingToken, setFundingToken] = useState<DemoToken>("USDC");
+  const [fundingToken, setFundingToken] = useState<FundingAsset>("USDC");
   const [amount, setAmount] = useState("1000");
-  const [minRange, setMinRange] = useState(-8);
-  const [maxRange, setMaxRange] = useState(8);
+  const [lowerBin, setLowerBin] = useState(-35);
+  const [upperBin, setUpperBin] = useState(34);
+  const [side, setSide] = useState<"fifty_fifty" | "base" | "quote">(
+    "fifty_fifty",
+  );
+  const [chartUnit, setChartUnit] = useState("Price");
+  const [chartReset, setChartReset] = useState(0);
   const [creatorFee, setCreatorFee] = useState(10);
   const [modal, setModal] = useState<TerminalModal>(null);
   const [modalAmount, setModalAmount] = useState("250");
@@ -1311,12 +1220,17 @@ function PoolersTerminal({
   const [editBio, setEditBio] = useState("");
   const [toast, setToast] = useState("");
   const [mobilePanel, setMobilePanel] = useState("Market");
-  const [hoveredCandle, setHoveredCandle] = useState<number | null>(null);
   const [positionFilter, setPositionFilter] = useState("All");
   const searchRef = useRef<HTMLInputElement>(null);
   const pendingWalletAction = useRef<TerminalModal>(null);
-  const pool = DEMO_POOLS.find((item) => item.id === selectedId)!;
-  const filteredPools = DEMO_POOLS.filter(
+  const pool = MARKETS.find((item) => item.id === selectedId)!;
+  const minRange = Number(
+    ((Math.pow(1 + pool.binStep / 10000, lowerBin) - 1) * 100).toFixed(2),
+  );
+  const maxRange = Number(
+    ((Math.pow(1 + pool.binStep / 10000, upperBin) - 1) * 100).toFixed(2),
+  );
+  const filteredPools = MARKETS.filter(
     (item) =>
       (category === "All" || item.category === category) &&
       `${item.pair} ${item.symbol}`.toLowerCase().includes(query.toLowerCase()),
@@ -1331,19 +1245,23 @@ function PoolersTerminal({
   const walletUsd =
     workspace.balances.USDC +
     workspace.balances.SOL *
-      DEMO_POOLS.find((item) => item.id === "sol-usdc")!.price;
+      MARKETS.find((item) => item.id === "sol-usdc")!.price;
   const totalUsd = walletUsd + activeUsd;
   const usdAmount =
     Number(amount) *
     (fundingToken === "SOL"
-      ? DEMO_POOLS.find((item) => item.id === "sol-usdc")!.price
+      ? MARKETS.find((item) => item.id === "sol-usdc")!.price
       : 1);
   const amountValid =
     amount.trim() !== "" &&
     Number.isFinite(Number(amount)) &&
     Number(amount) > 0 &&
     Number(amount) <= workspace.balances[fundingToken];
-  const selectedStrategies = DEMO_STRATEGIES.filter(
+  const poolEvents = workspace.events.filter(
+    (event) =>
+      event.detail.includes(pool.pair) || event.detail.includes(pool.symbol),
+  );
+  const selectedStrategies = STRATEGIES.filter(
     (strategy) => strategy.poolId === selectedId,
   );
   const modalValue = Number(modalAmount);
@@ -1357,7 +1275,7 @@ function PoolersTerminal({
       modalValue <= workspace.balances.USDC);
   useEffect(() => {
     try {
-      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(workspace));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
     } catch {
       /* In-memory mode remains usable. */
     }
@@ -1380,23 +1298,23 @@ function PoolersTerminal({
   const notify = (message: string) => setToast(message);
   const selectPool = (id: string) => {
     setSelectedId(id);
+    setActivityTab("Strategies");
     setView("terminal");
     setMarketTab("Chart");
-    setHoveredCandle(null);
     setMobilePanel("Market");
   };
-  const connectDemo = () => {
+  const connectLocalWallet = () => {
     setWorkspace((current) => ({ ...current, connected: true }));
     setModal(pendingWalletAction.current);
     pendingWalletAction.current = null;
-    notify("Demo wallet ready. Your workspace is yours to explore.");
+    notify("Wallet connected");
   };
   const eventRecord = (
     action: string,
     detail: string,
     units: number,
-    token: DemoToken,
-  ): DemoEvent => ({
+    token: FundingAsset,
+  ): ActivityEvent => ({
     id: crypto.randomUUID(),
     action,
     detail,
@@ -1407,15 +1325,16 @@ function PoolersTerminal({
   const createStrategy = () => {
     if (!amountValid || !workspace.connected) return;
     const units = Number(amount);
-    const position: DemoPosition = {
+    const position: LiquidityPosition = {
       id: crypto.randomUUID(),
       poolId: selectedId,
-      title: `${pool.symbol}, my way`,
+      title: `${pool.symbol} · ${shape}`,
       units,
       usd: usdAmount,
       token: fundingToken,
       kind: "created",
       shape,
+      side,
       fee: creatorFee,
       min: minRange,
       max: maxRange,
@@ -1426,7 +1345,7 @@ function PoolersTerminal({
       ...current,
       balances: {
         ...current.balances,
-        [fundingToken]: demoRound(current.balances[fundingToken] - units),
+        [fundingToken]: roundAmount(current.balances[fundingToken] - units),
       },
       positions: [position, ...current.positions],
       events: [
@@ -1437,11 +1356,11 @@ function PoolersTerminal({
     setModal(null);
     setActivityTab("Yours");
     setMobilePanel("Market");
-    notify("Strategy created. You can manage it in your portfolio.");
+    notify("Strategy created");
   };
-  const joinStrategy = (strategy: DemoStrategy) => {
+  const joinStrategy = (strategy: PoolStrategy) => {
     if (!modalValueValid || !workspace.connected) return;
-    const position: DemoPosition = {
+    const position: LiquidityPosition = {
       id: crypto.randomUUID(),
       poolId: strategy.poolId,
       title: strategy.title,
@@ -1450,7 +1369,7 @@ function PoolersTerminal({
       token: "USDC",
       kind: "joined",
       shape: strategy.shape,
-      fee: 10,
+      fee: strategy.creatorFee,
       min: -8,
       max: 8,
       status: "active",
@@ -1460,7 +1379,7 @@ function PoolersTerminal({
       ...current,
       balances: {
         ...current.balances,
-        USDC: demoRound(current.balances.USDC - modalValue),
+        USDC: roundAmount(current.balances.USDC - modalValue),
       },
       positions: [position, ...current.positions],
       events: [
@@ -1469,7 +1388,7 @@ function PoolersTerminal({
       ].slice(0, 500),
     }));
     setModal(null);
-    notify("You joined the strategy. Find your position in Portfolio.");
+    notify("Strategy joined");
   };
   const exitPosition = (id: string) => {
     const position = workspace.positions.find(
@@ -1480,7 +1399,7 @@ function PoolersTerminal({
       ...current,
       balances: {
         ...current.balances,
-        [position.token]: demoRound(
+        [position.token]: roundAmount(
           current.balances[position.token] + position.units,
         ),
       },
@@ -1498,7 +1417,7 @@ function PoolersTerminal({
       ].slice(0, 500),
     }));
     setModal(null);
-    notify("Position closed. Your demo funds are back in your wallet.");
+    notify("Position closed");
   };
   const transferFunds = (direction: "Deposit" | "Withdraw") => {
     if (!modalValueValid) return;
@@ -1507,15 +1426,15 @@ function PoolersTerminal({
       connected: true,
       balances: {
         ...current.balances,
-        USDC: demoRound(
+        USDC: roundAmount(
           current.balances.USDC +
             (direction === "Deposit" ? modalValue : -modalValue),
         ),
       },
       events: [
         eventRecord(
-          direction === "Deposit" ? "Demo deposit" : "Demo withdrawal",
-          "Demo wallet",
+          direction === "Deposit" ? "Deposit" : "Withdrawal",
+          "wallet",
           modalValue,
           "USDC",
         ),
@@ -1524,10 +1443,10 @@ function PoolersTerminal({
     }));
     setModal(null);
     notify(
-      `${demoMoney(modalValue)} USDC ${direction === "Deposit" ? "added to" : "removed from"} your demo balance.`,
+      `${formatMoney(modalValue)} USDC ${direction === "Deposit" ? "added to" : "removed from"} your balance.`,
     );
   };
-  const openJoin = (strategy: DemoStrategy) => {
+  const openJoin = (strategy: PoolStrategy) => {
     setModalAmount("250");
     if (!workspace.connected)
       pendingWalletAction.current = { kind: "join", strategy };
@@ -1552,10 +1471,8 @@ function PoolersTerminal({
         ? current.following.filter((item) => item !== handle)
         : [...current.following, handle],
     }));
-  const renderPosition = (position: DemoPosition) => {
-    const positionPool = DEMO_POOLS.find(
-      (item) => item.id === position.poolId,
-    )!;
+  const renderPosition = (position: LiquidityPosition) => {
+    const positionPool = MARKETS.find((item) => item.id === position.poolId)!;
     return (
       <div className="pt-position-row" key={position.id}>
         <button
@@ -1571,7 +1488,7 @@ function PoolersTerminal({
           </span>
         </button>
         <div>
-          <strong>${demoMoney(position.usd)}</strong>
+          <strong>${formatMoney(position.usd)}</strong>
           <small>
             {position.kind === "created"
               ? "Created by you"
@@ -1602,29 +1519,11 @@ function PoolersTerminal({
     <div className="pt-app">
       <header className="pt-topbar">
         <button className="pt-brand" onClick={onHome} aria-label="Poolers home">
-          <BrandMark size={37} />
-          <span>
-            poolers<span>.</span>
-          </span>
+          <BrandMark size={32} />
+          <span>Poolers</span>
         </button>
-        <nav aria-label="Application navigation">
-          <button
-            className={view === "terminal" ? "active" : ""}
-            onClick={() => setView("terminal")}
-          >
-            <Waves size={16} />
-            Explore
-          </button>
-          <button
-            className={view === "portfolio" ? "active" : ""}
-            onClick={() => setView("portfolio")}
-          >
-            <Wallet size={15} />
-            Portfolio
-          </button>
-        </nav>
         <label className="pt-global-search">
-          <Search size={15} />
+          <Search size={16} />
           <input
             ref={searchRef}
             value={query}
@@ -1633,15 +1532,25 @@ function PoolersTerminal({
               setView("terminal");
               setMobilePanel("Discover");
             }}
-            placeholder="Search pools, tokens…"
+            placeholder="Pools, tokens, creators"
             aria-label="Search all pools"
           />
           <kbd>⌘ K</kbd>
         </label>
-        <span className="pt-demo-badge">
-          <span />
-          INTERACTIVE DEMO
-        </span>
+        <nav aria-label="Application navigation">
+          <button
+            className={view === "terminal" ? "active" : ""}
+            onClick={() => setView("terminal")}
+          >
+            Terminal
+          </button>
+          <button
+            className={view === "portfolio" ? "active" : ""}
+            onClick={() => setView("portfolio")}
+          >
+            Portfolio
+          </button>
+        </nav>
         <button
           className="pt-wallet-button"
           onClick={() => {
@@ -1651,14 +1560,14 @@ function PoolersTerminal({
               : setModal({ kind: "wallet" });
           }}
         >
-          <Wallet size={15} />
+          <Wallet size={16} />
           {workspace.connected
-            ? `${demoMoney(walletUsd)} USD`
-            : "Try demo wallet"}
-          {workspace.connected && <ChevronDown size={13} />}
+            ? `${formatMoney(walletUsd)} USD`
+            : "Connect wallet"}
+          {workspace.connected && <ChevronDown size={14} />}
         </button>
         <button
-          className={`pt-avatar ${view === "profile" ? "active" : ""}`}
+          className="pt-avatar"
           onClick={() => setView("profile")}
           aria-label="Open your profile"
         >
@@ -1669,16 +1578,23 @@ function PoolersTerminal({
             .join("")}
         </button>
       </header>
-      <div className="pt-demo-strip">
-        <span>
-          <span className="pt-live-dot" />A little clarity. A lot more
-          possibility.
-        </span>
-        <span>Sample markets · simulated actions · no real funds</span>
-        <button onClick={() => setModal({ kind: "reset" })}>
-          Reset demo <RotateCcw size={11} />
-        </button>
-      </div>
+      {view !== "terminal" && (
+        <nav className="pt-mobile-account-nav" aria-label="Account navigation">
+          <button onClick={() => setView("terminal")}>Terminal</button>
+          <button
+            className={view === "portfolio" ? "active" : ""}
+            onClick={() => setView("portfolio")}
+          >
+            Portfolio
+          </button>
+          <button
+            className={view === "profile" ? "active" : ""}
+            onClick={() => setView("profile")}
+          >
+            Profile
+          </button>
+        </nav>
+      )}
       {view === "terminal" ? (
         <>
           <div className="pt-mobile-tabs" aria-label="Workspace panel">
@@ -1688,45 +1604,16 @@ function PoolersTerminal({
                 className={mobilePanel === panel ? "active" : ""}
                 onClick={() => setMobilePanel(panel)}
               >
-                {panel === "Discover" ? (
-                  <Compass size={15} />
-                ) : panel === "Market" ? (
-                  <ChartNoAxesCombined size={15} />
-                ) : (
-                  <Plus size={15} />
-                )}{" "}
-                {panel}
+                {panel === "Discover"
+                  ? "Pools"
+                  : panel === "Market"
+                    ? "Chart"
+                    : "Create strategy"}
               </button>
             ))}
           </div>
           <div className={`pt-workspace show-${mobilePanel.toLowerCase()}`}>
             <aside className="pt-discovery">
-              <div className="pt-side-heading">
-                <div>
-                  <span className="pt-eyebrow">FIND YOUR CURRENT</span>
-                  <h1>Discover</h1>
-                </div>
-                <button
-                  className="pt-icon-button"
-                  onClick={() => {
-                    setQuery("");
-                    setCategory("All");
-                    notify("Showing all demo markets.");
-                  }}
-                  aria-label="Reset discovery filters"
-                >
-                  <SlidersHorizontal size={16} />
-                </button>
-              </div>
-              <label className="pt-discover-search">
-                <Search size={15} />
-                <input
-                  aria-label="Search mobile pools"
-                  placeholder="Pools, tokens, creators…"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
               <div className="pt-discovery-tabs">
                 {["Strategies", "Pools"].map((tab) => (
                   <button
@@ -1735,10 +1622,29 @@ function PoolersTerminal({
                     onClick={() => setDiscovery(tab)}
                   >
                     {tab}
-                    {tab === "Pools" && <span>{DEMO_POOLS.length}</span>}
                   </button>
                 ))}
+                <button
+                  className="pt-icon-button"
+                  title="Reset filters"
+                  aria-label="Reset discovery filters"
+                  onClick={() => {
+                    setQuery("");
+                    setCategory("All");
+                  }}
+                >
+                  <SlidersHorizontal size={16} />
+                </button>
               </div>
+              <label className="pt-discover-search">
+                <Search size={16} />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search pools"
+                  aria-label="Search mobile pools"
+                />
+              </label>
               {discovery === "Pools" ? (
                 <>
                   <div className="pt-categories">
@@ -1748,7 +1654,7 @@ function PoolersTerminal({
                         className={category === item ? "active" : ""}
                         onClick={() => setCategory(item)}
                       >
-                        {item === "Memes" && <Flame size={11} />} {item}
+                        {item}
                       </button>
                     ))}
                   </div>
@@ -1757,33 +1663,27 @@ function PoolersTerminal({
                       <button
                         className={`pt-pool-card ${selectedId === item.id ? "active" : ""}`}
                         key={item.id}
-                        onClick={() => selectPool(item.id)}
                         aria-label={`${item.pair} pool`}
                         aria-pressed={selectedId === item.id}
+                        onClick={() => selectPool(item.id)}
                       >
                         <TokenPair pool={item} />
                         <div>
-                          <strong>{item.pair}</strong>
-                          <span>{demoPrice(item.price)}</span>
+                          <strong>{item.pair.replace(" / ", "–")}</strong>
+                          <span>{formatPrice(item.price)}</span>
                         </div>
                         <div>
-                          <strong
-                            className={
-                              item.change < 0 ? "negative" : "positive"
-                            }
-                          >
-                            {item.change > 0 ? "+" : ""}
-                            {demoMoney(item.change)}%
+                          <strong>
+                            {item.tvl}
+                            <small> TVL</small>
                           </strong>
-                          <span>{item.tvl} TVL</span>
+                          <span>{item.volume} vol</span>
                         </div>
                       </button>
                     ))}
                     {!filteredPools.length && (
                       <div className="pt-empty">
-                        <Search size={23} />
                         <strong>No pools found</strong>
-                        <p>Try another token or clear your filters.</p>
                         <button
                           onClick={() => {
                             setQuery("");
@@ -1797,460 +1697,476 @@ function PoolersTerminal({
                   </div>
                 </>
               ) : (
-                <div className="pt-creator-list">
-                  <p>Good ideas come from good company.</p>
-                  {["marin.lp", "alex.sol", "jules.lp"].map(
-                    (creator, index) => (
-                      <article key={creator}>
-                        <span
-                          className={`pt-creator-avatar tone-${["teal", "purple", "orange"][index]}`}
-                        >
-                          {creator[0].toUpperCase()}
-                        </span>
-                        <div>
-                          <button
-                            className="pt-creator-link"
-                            onClick={() =>
-                              setModal({ kind: "creator", handle: creator })
-                            }
-                            aria-label={`View ${creator} profile`}
-                          >
-                            {creator}
-                          </button>
-                          <span>
-                            {[12, 8, 6][index]} strategies · {214 - index * 46}{" "}
-                            followers
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => followCreator(creator)}
-                          aria-label={`${workspace.following.includes(creator) ? "Unfollow" : "Follow"} ${creator}`}
-                          className={
-                            workspace.following.includes(creator)
-                              ? "following"
-                              : ""
-                          }
-                        >
-                          {workspace.following.includes(creator) ? (
-                            <Check size={13} />
-                          ) : (
-                            <Plus size={13} />
-                          )}
-                        </button>
-                      </article>
-                    ),
-                  )}
-                  <div className="pt-curated-list">
-                    {DEMO_STRATEGIES.filter((item) =>
-                      `${item.title} ${item.creator} ${DEMO_POOLS.find((p) => p.id === item.poolId)?.pair}`
-                        .toLowerCase()
-                        .includes(query.toLowerCase()),
-                    ).map((strategy) => (
+                <div className="pt-curated-list">
+                  {STRATEGIES.filter((strategy) =>
+                    `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
+                      .toLowerCase()
+                      .includes(query.toLowerCase()),
+                  ).map((strategy) => (
+                    <article key={strategy.id}>
                       <button
-                        key={strategy.id}
+                        className="pt-strategy-discovery"
                         onClick={() => {
                           selectPool(strategy.poolId);
                           setActivityTab("Strategies");
                         }}
                       >
+                        <TokenPair
+                          pool={
+                            MARKETS.find((item) => item.id === strategy.poolId)!
+                          }
+                        />
                         <span>
-                          {strategy.title}
-                          <small>by {strategy.creator}</small>
+                          <strong>{strategy.title}</strong>
+                          <small>
+                            {strategy.creator} · {strategy.shape}
+                          </small>
                         </span>
-                        <strong>
-                          {strategy.apr}%<small>est. APR</small>
-                        </strong>
+                        <ArrowUpRight size={14} />
                       </button>
-                    ))}
-                  </div>
+                      <div className="pt-side-strategy-meta">
+                        <span>
+                          Value ${formatMoney(strategy.valueUsd || 0)}
+                        </span>
+                        <span
+                          className={
+                            strategy.apr >= 0 ? "positive" : "negative"
+                          }
+                        >
+                          {strategy.apr >= 0 ? "+" : ""}
+                          {formatMoney(strategy.apr)}%
+                        </span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               )}
-              <div className="pt-discovery-bottom">
-                <span className="pt-status-row">
-                  <span />
-                  Solana-inspired workspace <span>DEMO</span>
-                </span>
+              <div className="pt-discovery-footer">
                 <button onClick={onOnboarding}>
-                  <Sparkles size={15} />
-                  <span>
-                    Make yourself at home
-                    <small>Explore the onboarding experience</small>
-                  </span>
-                  <ArrowUpRight size={13} />
+                  Profile setup <ArrowUpRight size={13} />
+                </button>
+                <button
+                  onClick={() => setModal({ kind: "reset" })}
+                  aria-label="Reset workspace"
+                  title="Reset workspace"
+                >
+                  <RotateCcw size={14} />
                 </button>
               </div>
             </aside>
             <main className="pt-market">
-              <div className="pt-market-header">
+              <header className="pt-market-header">
                 <div className="pt-market-pair">
                   <TokenPair pool={pool} />
                   <div>
-                    <h2>
-                      {pool.pair}
-                      <span>DLMM</span>
-                    </h2>
-                    <p>
-                      Concentrated liquidity <span>·</span> 0.30% fee{" "}
-                      <span>·</span> 20 bin step
-                    </p>
+                    <h1>
+                      {pool.symbol}
+                      <span className="pt-pool-pair-label">
+                        {pool.pair.replace(" / ", "–")}
+                      </span>
+                    </h1>
+                    <div className="pt-pool-metadata">
+                      <span>{pool.feePct}% fee</span>
+                      <span>{pool.binStep} bin step</span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(pool.address);
+                            notify("Pool address copied");
+                          } catch {
+                            notify(pool.address);
+                          }
+                        }}
+                        title="Copy pool address"
+                        aria-label="Copy pool address"
+                      >
+                        {pool.address.slice(0, 5)}…{pool.address.slice(-5)}{" "}
+                        <Copy size={12} />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className="pt-icon-button"
-                    aria-label="Copy demo pool reference"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(`demo:${pool.id}`);
-                        notify("Demo pool reference copied.");
-                      } catch {
-                        notify(`Demo pool reference: ${pool.id}`);
-                      }
-                    }}
-                  >
-                    <Copy size={13} />
-                  </button>
                 </div>
-                <div className="pt-market-price">
-                  <strong>{demoPrice(pool.price)}</strong>
-                  <span className={pool.change < 0 ? "negative" : "positive"}>
-                    {pool.change > 0 ? "+" : ""}
-                    {pool.change}% <small>24h</small>
-                  </span>
-                </div>
-              </div>
-              <div className="pt-market-metrics">
-                <div>
-                  <span>Liquidity</span>
-                  <strong>{pool.tvl}</strong>
-                </div>
-                <div>
-                  <span>24h volume</span>
-                  <strong>{pool.volume}</strong>
-                </div>
-                <div>
-                  <span>Est. pool APR</span>
-                  <strong className="positive">{pool.apr}%</strong>
-                </div>
-                <div>
-                  <span>Fee tier</span>
-                  <strong>
-                    0.30%<small>Dynamic</small>
-                  </strong>
-                </div>
-              </div>
+                <dl className="pt-market-metrics">
+                  <div>
+                    <dt>Price</dt>
+                    <dd>{formatPrice(pool.price)}</dd>
+                  </div>
+                  <div>
+                    <dt>Market cap</dt>
+                    <dd>{pool.marketCap}</dd>
+                  </div>
+                  <div>
+                    <dt>TVL</dt>
+                    <dd>{pool.tvl}</dd>
+                  </div>
+                  <div>
+                    <dt>Volume 24h</dt>
+                    <dd>{pool.volume}</dd>
+                  </div>
+                </dl>
+              </header>
               <section className="pt-chart-section">
                 <div className="pt-chart-toolbar">
                   <div className="pt-line-tabs">
                     {["Chart", "Details"].map((tab) => (
                       <button
                         key={tab}
-                        onClick={() => setMarketTab(tab)}
                         className={marketTab === tab ? "active" : ""}
+                        onClick={() => setMarketTab(tab)}
                       >
                         {tab}
                       </button>
                     ))}
                   </div>
-                  <div className="pt-chart-timeframes">
-                    {["15m", "1H", "4H", "1D"].map((period) => (
-                      <button
-                        key={period}
-                        aria-pressed={timeframe === period}
-                        className={timeframe === period ? "active" : ""}
-                        onClick={() => {
-                          setTimeframe(period);
-                          setHoveredCandle(null);
-                        }}
-                      >
-                        {period}
-                      </button>
-                    ))}
+                  <div className="pt-chart-settings">
+                    <select
+                      aria-label="Chart timeframe"
+                      value={timeframe}
+                      onChange={(event) => setTimeframe(event.target.value)}
+                    >
+                      <option value="5m">5m</option>
+                      <option value="15m">15m</option>
+                      <option value="1H">1h</option>
+                      <option value="4H">4h</option>
+                      <option value="1D">1d</option>
+                    </select>
+                    <div className="pt-chart-unit">
+                      {["Price", "MCap"].map((unit) => (
+                        <button
+                          key={unit}
+                          className={chartUnit === unit ? "active" : ""}
+                          aria-pressed={chartUnit === unit}
+                          onClick={() => setChartUnit(unit)}
+                        >
+                          {unit}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      className="pt-icon-button"
+                      aria-label="Reset chart view"
+                      title="Reset chart view"
+                      onClick={() => setChartReset((value) => value + 1)}
+                    >
+                      <RotateCcw size={14} />
+                    </button>
                   </div>
                 </div>
                 {marketTab === "Chart" ? (
-                  <>
-                    <MarketCandles
-                      pool={pool}
-                      timeframe={timeframe}
-                      hovered={hoveredCandle}
-                      onHover={setHoveredCandle}
-                    />
-                    <div className="pt-chart-caption">
-                      <span>
-                        <span className="pt-legend-dot" />
-                        Price / USD
-                      </span>
-                      <span>
-                        <span className="pt-legend-dot muted" />
-                        Volume
-                      </span>
-                      <span>Illustrative market data</span>
-                    </div>
-                  </>
+                  <MarketCandles
+                    pool={pool}
+                    timeframe={timeframe}
+                    lowerPrice={
+                      pool.price * Math.pow(1 + pool.binStep / 10000, lowerBin)
+                    }
+                    upperPrice={
+                      pool.price * Math.pow(1 + pool.binStep / 10000, upperBin)
+                    }
+                    chartUnit={chartUnit}
+                    resetKey={chartReset}
+                  />
                 ) : (
                   <div className="pt-market-details">
-                    <h3>A clearer look at {pool.pair}.</h3>
-                    <p>
-                      This concentrated liquidity pool lets LPs choose a price
-                      range. Positions earn fees in this demo while the market
-                      price stays within that range.
-                    </p>
+                    <h2>Pool details</h2>
                     <dl>
                       <div>
-                        <dt>Pool type</dt>
-                        <dd>Dynamic liquidity market maker</dd>
+                        <dt>Address</dt>
+                        <dd>{pool.address}</dd>
                       </div>
                       <div>
                         <dt>Assets</dt>
                         <dd>
-                          {pool.symbol} + {pool.quote}
+                          {pool.symbol} / {pool.quote}
                         </dd>
                       </div>
                       <div>
                         <dt>Bin step</dt>
-                        <dd>20 basis points</dd>
+                        <dd>{pool.binStep} basis points</dd>
                       </div>
                       <div>
-                        <dt>Reference</dt>
-                        <dd>demo:{pool.id}</dd>
+                        <dt>Base fee</dt>
+                        <dd>{pool.feePct}%</dd>
+                      </div>
+                      <div>
+                        <dt>Fees 24h</dt>
+                        <dd>{pool.fees24h}</dd>
+                      </div>
+                      <div>
+                        <dt>Fee / TVL 24h</dt>
+                        <dd>{pool.feeTvl}%</dd>
                       </div>
                     </dl>
-                    <p className="pt-details-note">
-                      <ShieldCheck size={15} />
-                      This workspace uses simulated data. Nothing here moves
-                      real funds.
-                    </p>
                   </div>
                 )}
               </section>
               <section className="pt-activity-section">
                 <div className="pt-activity-header">
                   <div className="pt-line-tabs">
-                    {["Strategies", "Yours", "History", "Liquidity"].map(
-                      (tab) => (
-                        <button
-                          key={tab}
-                          className={activityTab === tab ? "active" : ""}
-                          onClick={() => setActivityTab(tab)}
-                        >
-                          {tab}
-                          {tab === "Yours" && (
-                            <span>
-                              {
-                                activePositions.filter(
-                                  (item) => item.poolId === selectedId,
-                                ).length
-                              }
-                            </span>
-                          )}
-                        </button>
-                      ),
+                    <button
+                      className={activityTab !== "History" ? "active" : ""}
+                      onClick={() => setActivityTab("Strategies")}
+                    >
+                      Strategies
+                    </button>
+                    <button
+                      className={activityTab === "History" ? "active" : ""}
+                      onClick={() => setActivityTab("History")}
+                    >
+                      History
+                    </button>
+                  </div>
+                  <button className="pt-text-button" onClick={openComposer}>
+                    Create strategy <Plus size={14} />
+                  </button>
+                </div>
+                {activityTab === "History" ? (
+                  <div className="pt-history-list">
+                    {poolEvents.length ? (
+                      workspace.events
+                        .slice(0, 12)
+                        .map((event) => (
+                          <ActivityRow event={event} key={event.id} />
+                        ))
+                    ) : (
+                      <div className="pt-empty">
+                        <strong>No activity in this pool</strong>
+                      </div>
                     )}
                   </div>
-                  <span className="pt-sample-label">SAMPLE DATA</span>
-                </div>
-                {activityTab === "Strategies" ? (
+                ) : (
                   <>
-                    <div className="pt-strategy-intro">
-                      <span>Thoughtful strategies. Shared perspectives.</span>
-                      <button onClick={openComposer}>
-                        Create yours <ArrowUpRight size={12} />
+                    <div className="pt-position-filters">
+                      <button
+                        className={activityTab === "Strategies" ? "active" : ""}
+                        onClick={() => setActivityTab("Strategies")}
+                      >
+                        All
+                      </button>
+                      <button
+                        className={activityTab === "Yours" ? "active" : ""}
+                        onClick={() => setActivityTab("Yours")}
+                      >
+                        Yours{" "}
+                        <span>
+                          {activePositions.filter(
+                            (item) => item.poolId === selectedId,
+                          ).length || ""}
+                        </span>
                       </button>
                     </div>
-                    <div className="pt-strategy-list">
-                      {selectedStrategies.length ? (
-                        selectedStrategies.map((strategy) => (
+                    {activityTab === "Yours" ? (
+                      <div className="pt-terminal-positions">
+                        {activePositions.filter(
+                          (item) => item.poolId === selectedId,
+                        ).length ? (
+                          activePositions
+                            .filter((item) => item.poolId === selectedId)
+                            .map(renderPosition)
+                        ) : (
+                          <div className="pt-empty">
+                            <strong>No positions in this pool</strong>
+                            <p>Your created and joined positions appear here</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-strategy-list">
+                        {selectedStrategies.map((strategy) => (
                           <article
                             className="pt-strategy-card"
                             key={strategy.id}
                           >
-                            <span
-                              className={`pt-creator-avatar tone-${strategy.tone}`}
+                            <button
+                              className="pt-strategy-author"
+                              onClick={() =>
+                                setModal({
+                                  kind: "creator",
+                                  handle: strategy.creator,
+                                })
+                              }
                             >
-                              {strategy.initials}
-                            </span>
-                            <div>
-                              <h3>{strategy.title}</h3>
-                              <p>
-                                by{" "}
-                                <button
-                                  className="pt-creator-link"
-                                  onClick={() =>
-                                    setModal({
-                                      kind: "creator",
-                                      handle: strategy.creator,
-                                    })
+                              <img
+                                src={strategy.avatar || "/creators/default.svg"}
+                                alt=""
+                              />
+                              <span>{strategy.creator}</span>
+                            </button>
+                            <div className="pt-strategy-card-title">
+                              <strong>{strategy.title}</strong>
+                              <span>
+                                {strategy.shape} · {strategy.members}{" "}
+                                participants · {strategy.creatorFee || 10}%
+                                creator fee
+                              </span>
+                            </div>
+                            <div className="pt-strategy-numbers">
+                              <div>
+                                <span>Value</span>
+                                <strong>
+                                  ${formatMoney(strategy.valueUsd || 0)}
+                                </strong>
+                              </div>
+                              <div>
+                                <span>PnL</span>
+                                <strong
+                                  className={
+                                    strategy.apr >= 0 ? "positive" : "negative"
                                   }
                                 >
-                                  {strategy.creator}
-                                </button>
-                                <span>·</span>
-                                {strategy.members} LPs<span>·</span>
-                                {strategy.shape}
-                              </p>
-                            </div>
-                            <div className="pt-strategy-return">
-                              <strong>{strategy.apr}%</strong>
-                              <span>est. APR</span>
+                                  {strategy.apr >= 0 ? "+" : ""}
+                                  {formatMoney(strategy.apr)}%
+                                </strong>
+                              </div>
                             </div>
                             <button
                               className="pt-small-button"
                               onClick={() => openJoin(strategy)}
                             >
-                              Join <ArrowUpRight size={13} />
+                              Join
                             </button>
                           </article>
-                        ))
-                      ) : (
-                        <div className="pt-empty">
-                          <Layers3 size={25} />
-                          <strong>Room for a new perspective.</strong>
-                          <p>
-                            Be the first to create a demo strategy for this
-                            pool.
-                          </p>
-                          <button onClick={openComposer}>
-                            Create a strategy
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                        {activePositions
+                          .filter(
+                            (item) =>
+                              item.poolId === selectedId &&
+                              item.kind === "created",
+                          )
+                          .map(renderPosition)}
+                        {!selectedStrategies.length &&
+                          !activePositions.some(
+                            (item) =>
+                              item.poolId === selectedId &&
+                              item.kind === "created",
+                          ) && (
+                            <div className="pt-empty">
+                              <strong>No strategies in this pool</strong>
+                              <p>
+                                Shared strategies in this pool will show up here
+                              </p>
+                            </div>
+                          )}
+                      </div>
+                    )}
                   </>
-                ) : activityTab === "Yours" ? (
-                  <div className="pt-terminal-positions">
-                    {activePositions.filter(
-                      (item) => item.poolId === selectedId,
-                    ).length ? (
-                      activePositions
-                        .filter((item) => item.poolId === selectedId)
-                        .map(renderPosition)
-                    ) : (
-                      <div className="pt-empty">
-                        <Wallet size={25} />
-                        <strong>Your next position starts here.</strong>
-                        <p>Create or join a demo strategy to see it here.</p>
-                      </div>
-                    )}
-                  </div>
-                ) : activityTab === "History" ? (
-                  <div className="pt-history-list">
-                    {workspace.events.filter(
-                      (event) =>
-                        event.detail.includes(pool.pair) ||
-                        event.detail.includes(pool.symbol) ||
-                        event.action.includes("Demo"),
-                    ).length ? (
-                      workspace.events
-                        .filter(
-                          (event) =>
-                            event.detail.includes(pool.pair) ||
-                            event.detail.includes(pool.symbol) ||
-                            event.action.includes("Demo"),
-                        )
-                        .slice(0, 8)
-                        .map((event) => (
-                          <DemoHistoryRow event={event} key={event.id} />
-                        ))
-                    ) : (
-                      <div className="pt-empty">
-                        <Clock3 size={25} />
-                        <strong>A fresh start.</strong>
-                        <p>
-                          Your demo activity for this pool will appear here.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="pt-liquidity-view">
-                    <div>
-                      <h3>A little depth. A little perspective.</h3>
-                      <p>
-                        Illustrative liquidity distribution across the price
-                        range.
-                      </p>
-                    </div>
-                    <LiquidityBars shape={shape} large />
-                    <div className="pt-liquidity-labels">
-                      <span>Lower price</span>
-                      <span>Current price</span>
-                      <span>Higher price</span>
-                    </div>
-                  </div>
                 )}
               </section>
             </main>
             <aside className="pt-composer">
-              <div className="pt-composer-title">
-                <span className="pt-composer-symbol">
-                  <Plus size={18} />
-                </span>
-                <div>
-                  <h2>Create a strategy</h2>
-                  <p>A position with your perspective.</p>
+              <div className="pt-line-tabs">
+                <button
+                  className="active"
+                  onClick={() =>
+                    document.getElementById("strategy-amount")?.focus()
+                  }
+                >
+                  Create strategy
+                </button>
+              </div>
+              <FeeControl value={creatorFee} onChange={setCreatorFee} />
+              <div className="pt-field-heading">
+                <label htmlFor="strategy-amount">Amount</label>
+                <div className="pt-funding-switch">
+                  {(["USDC", "SOL"] as FundingAsset[]).map((token) => (
+                    <button
+                      key={token}
+                      className={fundingToken === token ? "active" : ""}
+                      onClick={() => setFundingToken(token)}
+                      aria-label={`Fund with ${token}`}
+                      title={token}
+                    >
+                      <img
+                        src={`/tokens/${token.toLowerCase()}.png`}
+                        alt={token}
+                      />
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="pt-field-heading">
-                <label htmlFor="strategy-amount">Your starting point</label>
-                <span>DEMO FUNDS</span>
-              </div>
               <div className="pt-amount-box">
-                <div>
-                  <select
-                    aria-label="Funding asset"
-                    value={fundingToken}
-                    onChange={(event) =>
-                      setFundingToken(event.target.value as DemoToken)
-                    }
-                  >
-                    <option>USDC</option>
-                    <option>SOL</option>
-                  </select>
-                  <span>
-                    ${demoMoney(Number.isFinite(usdAmount) ? usdAmount : 0)}
-                  </span>
+                <div className="pt-amount-token">
+                  <img
+                    src={`/tokens/${fundingToken.toLowerCase()}.png`}
+                    alt=""
+                  />
+                  <strong>{fundingToken}</strong>
+                  <ChevronDown size={12} />
                 </div>
                 <input
                   id="strategy-amount"
                   aria-label="Strategy amount"
-                  inputMode="decimal"
                   type="number"
-                  min="0"
-                  max={workspace.balances[fundingToken]}
+                  inputMode="decimal"
                   step="any"
+                  min="0"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                 />
                 <div className="pt-available">
-                  Available: {demoMoney(workspace.balances[fundingToken])}{" "}
-                  {fundingToken}
-                  <button
-                    onClick={() =>
-                      setAmount(String(workspace.balances[fundingToken]))
-                    }
-                  >
-                    Max
-                  </button>
+                  <span>
+                    Available {formatMoney(workspace.balances[fundingToken])}{" "}
+                    <button
+                      onClick={() =>
+                        setAmount(String(workspace.balances[fundingToken]))
+                      }
+                    >
+                      Max
+                    </button>
+                  </span>
+                  <span>
+                    ${formatMoney(Number.isFinite(usdAmount) ? usdAmount : 0)}
+                  </span>
                 </div>
               </div>
               {!amountValid && (
                 <p className="pt-field-error" role="status">
-                  Enter an amount within your available demo balance.
+                  {Number(amount) <= 0
+                    ? "Enter an amount above zero"
+                    : "Amount exceeds available balance"}
                 </p>
               )}
               <div className="pt-field-heading">
-                <span>Find your shape</span>
-                <CircleHelp
-                  size={13}
-                  aria-label="Distribution across your selected range"
-                />
+                <span>Strategy</span>
+                <span className="pt-side-switch" aria-label="Token allocation">
+                  {[
+                    { value: "fifty_fifty", label: "50 / 50" },
+                    { value: "base", label: pool.symbol },
+                    { value: "quote", label: pool.quote },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      aria-pressed={side === item.value}
+                      className={side === item.value ? "active" : ""}
+                      onClick={() => {
+                        setSide(item.value as "fifty_fifty" | "base" | "quote");
+                        setLowerBin(
+                          item.value === "base"
+                            ? 1
+                            : item.value === "quote"
+                              ? -70
+                              : -35,
+                        );
+                        setUpperBin(
+                          item.value === "base"
+                            ? 70
+                            : item.value === "quote"
+                              ? -1
+                              : 34,
+                        );
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </span>
               </div>
               <div className="pt-shape-picker">
                 {["Spot", "Curve", "Bid Ask"].map((item) => (
                   <button
                     key={item}
-                    onClick={() => setShape(item)}
                     className={shape === item ? "active" : ""}
                     aria-pressed={shape === item}
+                    onClick={() => setShape(item)}
                   >
                     <ShapeIcon shape={item} />
                     {item}
@@ -2261,112 +2177,43 @@ function PoolersTerminal({
                 <span>Price range</span>
                 <button
                   onClick={() => {
-                    setMinRange(-8);
-                    setMaxRange(8);
+                    setLowerBin(-35);
+                    setUpperBin(34);
                   }}
                   aria-label="Reset price range"
+                  title="Reset price range"
                 >
-                  <RotateCcw size={12} />
+                  <RotateCcw size={14} />
                 </button>
               </div>
-              <LiquidityBars shape={shape} />
-              <div className="pt-range-fields">
-                <label>
-                  Min. price
-                  <span>{demoPrice(pool.price * (1 + minRange / 100))}</span>
-                  <div>
-                    <input
-                      aria-label="Minimum range percent"
-                      type="number"
-                      min="-50"
-                      max="-1"
-                      value={minRange}
-                      onChange={(event) =>
-                        setMinRange(
-                          Math.min(
-                            -1,
-                            Math.max(-50, Number(event.target.value)),
-                          ),
-                        )
-                      }
-                    />
-                    <span>%</span>
-                  </div>
-                </label>
-                <label>
-                  Max. price
-                  <span>{demoPrice(pool.price * (1 + maxRange / 100))}</span>
-                  <div>
-                    <input
-                      aria-label="Maximum range percent"
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={maxRange}
-                      onChange={(event) =>
-                        setMaxRange(
-                          Math.max(1, Math.min(50, Number(event.target.value))),
-                        )
-                      }
-                    />
-                    <span>%</span>
-                  </div>
-                </label>
+              <div className="pt-bin-legend">
+                <span>
+                  <i />
+                  {pool.symbol}
+                </span>
+                <span>
+                  <i />
+                  {pool.quote}
+                </span>
+                <span>
+                  {pool.quote}/{pool.symbol}
+                </span>
               </div>
-              <div className="pt-range-slider">
-                <input
-                  aria-label="Lower price range"
-                  type="range"
-                  min="-50"
-                  max="-1"
-                  value={minRange}
-                  onChange={(event) => setMinRange(Number(event.target.value))}
-                />
-                <input
-                  aria-label="Upper price range"
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={maxRange}
-                  onChange={(event) => setMaxRange(Number(event.target.value))}
-                />
-              </div>
-              <div className="pt-field-heading">
-                <span>Creator fee</span>
-                <strong>{creatorFee}%</strong>
-              </div>
-              <input
-                className="pt-fee-slider"
-                aria-label="Creator fee percent"
-                type="range"
-                min="5"
-                max="25"
-                value={creatorFee}
-                onChange={(event) => setCreatorFee(Number(event.target.value))}
+              <BinRangeControl
+                price={pool.pairPrice}
+                binStep={pool.binStep}
+                lowerBin={lowerBin}
+                upperBin={upperBin}
+                shape={shape}
+                side={side}
+                onRangeChange={(lower, upper) => {
+                  setLowerBin(lower);
+                  setUpperBin(upper);
+                }}
               />
-              <p className="pt-creator-help">
-                Your share of followers’ simulated strategy profits.
-              </p>
-              <div className="pt-composer-summary">
-                <div>
-                  <span>Distribution</span>
-                  <strong>
-                    50% {pool.symbol} / 50% {pool.quote}
-                  </strong>
-                </div>
-                <div>
-                  <span>Selected range</span>
-                  <strong>
-                    {minRange}% to +{maxRange}%
-                  </strong>
-                </div>
-                <div>
-                  <span>Network</span>
-                  <strong>
-                    <span className="pt-live-dot" />
-                    Demo environment
-                  </strong>
-                </div>
+              <div className="pt-bin-count">
+                <span>Total bins</span>
+                <strong>{upperBin - lowerBin + 1}</strong>
               </div>
               <button
                 className="pt-primary pt-create-button"
@@ -2384,14 +2231,10 @@ function PoolersTerminal({
                 }}
               >
                 {workspace.connected
-                  ? "Preview strategy"
-                  : "Start with a demo wallet"}
+                  ? "Review strategy"
+                  : "Connect wallet to create strategy"}
                 <ArrowRight size={16} />
               </button>
-              <p className="pt-composer-note">
-                <ShieldCheck size={12} />
-                No wallet connection. No real transactions.
-              </p>
             </aside>
           </div>
         </>
@@ -2399,16 +2242,13 @@ function PoolersTerminal({
         <main className="pt-account-page">
           <div className="pt-account-header">
             <div>
-              <span className="pt-eyebrow">YOUR OWN PERSPECTIVE</span>
+              <span className="pt-eyebrow">Account</span>
               <h1>
-                {view === "portfolio"
-                  ? "Your liquidity, in focus."
-                  : workspace.profile.name}
-                <span>✳</span>
+                {view === "portfolio" ? "Portfolio" : workspace.profile.name}
               </h1>
               <p>
                 {view === "portfolio"
-                  ? "Your positions, your balance, your next move."
+                  ? "Manage positions and available funds"
                   : `@${workspace.profile.handle} · ${workspace.profile.bio}`}
               </p>
             </div>
@@ -2427,7 +2267,7 @@ function PoolersTerminal({
                     onClick={() => openFund("Deposit")}
                   >
                     <Plus size={15} />
-                    Deposit demo funds
+                    Deposit
                   </button>
                 </>
               ) : (
@@ -2450,43 +2290,31 @@ function PoolersTerminal({
             <div className="pt-wallet-callout">
               <Wallet size={20} />
               <div>
-                <strong>A workspace you can make your own.</strong>
-                <span>
-                  Start the demo wallet to create, join, and manage positions.
-                </span>
+                <strong>Connect your wallet</strong>
+                <span>Manage positions and available funds</span>
               </div>
               <button onClick={() => setModal({ kind: "wallet" })}>
-                Try demo wallet <ArrowRight size={15} />
+                Connect wallet <ArrowRight size={15} />
               </button>
             </div>
           )}
           <div className="pt-account-stats">
             <article>
-              <span>Total demo value</span>
-              <strong>${demoMoney(totalUsd)}</strong>
+              <span>Total value</span>
+              <strong>${formatMoney(totalUsd)}</strong>
               <small>Wallet + active positions</small>
-              <div className="pt-stat-mini-chart">
-                <svg viewBox="0 0 150 35">
-                  <path
-                    d="M0 30 12 26 24 28 36 20 48 23 60 15 72 18 84 8 96 12 108 4 120 7 132 2 150 0"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                </svg>
-              </div>
             </article>
             <article>
               <span>Available in wallet</span>
-              <strong>${demoMoney(walletUsd)}</strong>
+              <strong>${formatMoney(walletUsd)}</strong>
               <small>
-                {demoMoney(workspace.balances.USDC)} USDC +{" "}
-                {demoMoney(workspace.balances.SOL)} SOL
+                {formatMoney(workspace.balances.USDC)} USDC +{" "}
+                {formatMoney(workspace.balances.SOL)} SOL
               </small>
             </article>
             <article>
               <span>Active liquidity</span>
-              <strong>${demoMoney(activeUsd)}</strong>
+              <strong>${formatMoney(activeUsd)}</strong>
               <small>
                 {activePositions.length} positions across{" "}
                 {
@@ -2497,18 +2325,12 @@ function PoolersTerminal({
               </small>
             </article>
             <article>
-              <span>
-                {view === "profile" ? "Following" : "Illustrative fees / day"}
-              </span>
+              <span>{view === "profile" ? "Following" : "Fees earned"}</span>
               <strong>
-                {view === "profile"
-                  ? workspace.following.length
-                  : `$${demoMoney(activeUsd * 0.00035)}`}
+                {view === "profile" ? workspace.following.length : "$0.00"}
               </strong>
               <small>
-                {view === "profile"
-                  ? "Creators in your circle"
-                  : "Demo estimate · not a real return"}
+                {view === "profile" ? "Creators in your circle" : ""}
               </small>
             </article>
           </div>
@@ -2554,13 +2376,13 @@ function PoolersTerminal({
               "History" ? (
                 <div className="pt-account-history">
                   {workspace.events.map((event) => (
-                    <DemoHistoryRow key={event.id} event={event} />
+                    <ActivityRow key={event.id} event={event} />
                   ))}
                   {!workspace.events.length && (
                     <div className="pt-empty">
                       <Clock3 size={24} />
                       <strong>No activity yet</strong>
-                      <p>Your demo activity will appear here.</p>
+                      <p>Your activity will appear here.</p>
                     </div>
                   )}
                 </div>
@@ -2588,7 +2410,7 @@ function PoolersTerminal({
                   ).length && (
                     <div className="pt-empty">
                       <Layers3 size={24} />
-                      <strong>Make room for your next move.</strong>
+                      <strong>No active positions</strong>
                       <p>
                         Create or join a strategy to see your positions here.
                       </p>
@@ -2604,13 +2426,13 @@ function PoolersTerminal({
               <span className="pt-section-icon">
                 <Users size={20} />
               </span>
-              <span className="pt-eyebrow">IN GOOD COMPANY</span>
+              <span className="pt-eyebrow">Creators</span>
               <h2>
-                A little experience.
-                <br />A shared perspective.
+                Follow creators
+                <br />
               </h2>
-              <p>Find the creators behind your next strategy.</p>
-              {["marin.lp", "alex.sol", "jules.lp"].map((creator, index) => (
+              <p>Follow creators and view their strategies</p>
+              {CREATORS.map((creator, index) => (
                 <div key={creator} className="pt-follow-row">
                   <span
                     className={`pt-creator-avatar tone-${["teal", "purple", "orange"][index]}`}
@@ -2636,9 +2458,6 @@ function PoolersTerminal({
             </aside>
           </div>
           <div className="pt-account-footer">
-            <ShieldCheck size={14} />
-            Demo changes are saved in this browser. No real wallet or funds are
-            used.
             <button onClick={() => setModal({ kind: "reset" })}>
               Reset workspace
             </button>
@@ -2670,17 +2489,13 @@ function PoolersTerminal({
           <BrandMark size={45} />
           {modal.kind === "wallet" ? (
             <>
-              <span className="pt-eyebrow">YOUR NEXT CHAPTER</span>
-              <h2 id="pt-dialog-title">Make yourself at home.</h2>
-              <p>
-                Try every part of Poolers with a demo wallet. Explore pools,
-                create strategies, and see your positions come together.
-              </p>
-              <div className="pt-demo-wallet-card">
+              <h2 id="pt-dialog-title">Connect wallet</h2>
+              <p>Choose a wallet for this workspace</p>
+              <div className="pt-local-wallet-card">
                 <Wallet size={23} />
                 <div>
-                  <strong>Poolers demo wallet</strong>
-                  <span>10,000 USDC + 12.5 SOL to explore</span>
+                  <strong>Local wallet</strong>
+                  <span>Browser workspace</span>
                 </div>
                 <span className="pt-check-round">
                   <Check size={13} />
@@ -2688,20 +2503,16 @@ function PoolersTerminal({
               </div>
               <div className="pt-modal-notice">
                 <ShieldCheck size={17} />
-                <span>
-                  This is a simulation. No browser wallet, signatures, or real
-                  funds are involved.
-                </span>
+                <span>Local workspace · no transactions are submitted</span>
               </div>
-              <button className="pt-primary" onClick={connectDemo}>
-                Enter demo workspace <ArrowRight size={16} />
+              <button className="pt-primary" onClick={connectLocalWallet}>
+                Use local wallet <ArrowRight size={16} />
               </button>
             </>
           ) : modal.kind === "review" ? (
             <>
-              <span className="pt-eyebrow">A LITTLE PERSPECTIVE</span>
-              <h2 id="pt-dialog-title">Your strategy, at a glance.</h2>
-              <p>Review your demo position before making it yours.</p>
+              <h2 id="pt-dialog-title">Review strategy</h2>
+              <p>Confirm the pool, amount, and price range</p>
               <div className="pt-review-pair">
                 <TokenPair pool={pool} />
                 <strong>{pool.pair}</strong>
@@ -2709,20 +2520,27 @@ function PoolersTerminal({
               </div>
               <dl className="pt-review-details">
                 <div>
-                  <dt>Your starting amount</dt>
+                  <dt>Amount</dt>
                   <dd>
-                    {demoMoney(Number(amount))} {fundingToken}
+                    {formatMoney(Number(amount))} {fundingToken}
                   </dd>
                 </div>
                 <div>
-                  <dt>Demo value</dt>
-                  <dd>${demoMoney(usdAmount)}</dd>
+                  <dt>Value</dt>
+                  <dd>${formatMoney(usdAmount)}</dd>
                 </div>
                 <div>
-                  <dt>Price range</dt>
+                  <dt>
+                    Price range ({pool.quote}/{pool.symbol})
+                  </dt>
                   <dd>
-                    {demoPrice(pool.price * (1 + minRange / 100))} —{" "}
-                    {demoPrice(pool.price * (1 + maxRange / 100))}
+                    {binControlPriceFormat(
+                      pool.pairPrice * (1 + minRange / 100),
+                    )}{" "}
+                    —{" "}
+                    {binControlPriceFormat(
+                      pool.pairPrice * (1 + maxRange / 100),
+                    )}
                   </dd>
                 </div>
                 <div>
@@ -2731,32 +2549,35 @@ function PoolersTerminal({
                 </div>
                 <div>
                   <dt>Allocation</dt>
-                  <dd>50 / 50</dd>
+                  <dd>
+                    {side === "base"
+                      ? pool.symbol
+                      : side === "quote"
+                        ? pool.quote
+                        : "50 / 50"}
+                  </dd>
                 </div>
               </dl>
               <div className="pt-modal-notice">
                 <ShieldCheck size={17} />
-                <span>
-                  Creating this strategy only updates your demo workspace.
-                </span>
+                <span>Review the allocation before continuing</span>
               </div>
               <button
                 className="pt-primary"
                 onClick={createStrategy}
                 disabled={!amountValid}
               >
-                Create demo strategy <ArrowRight size={16} />
+                Create strategy <ArrowRight size={16} />
               </button>
             </>
           ) : modal.kind === "join" ? (
             <>
-              <span className="pt-eyebrow">BETTER, TOGETHER</span>
-              <h2 id="pt-dialog-title">Find your place in the pool.</h2>
+              <h2 id="pt-dialog-title">Join strategy</h2>
               <p>
                 Join “{modal.strategy.title}” by {modal.strategy.creator}.
               </p>
               <label className="pt-modal-input-label">
-                Your demo allocation
+                Your allocation
                 <div>
                   <input
                     aria-label="Join strategy amount"
@@ -2771,7 +2592,7 @@ function PoolersTerminal({
                 </div>
               </label>
               <span className="pt-modal-available">
-                Available: {demoMoney(workspace.balances.USDC)} USDC
+                Available: {formatMoney(workspace.balances.USDC)} USDC
               </span>
               <dl className="pt-review-details">
                 <div>
@@ -2780,7 +2601,7 @@ function PoolersTerminal({
                 </div>
                 <div>
                   <dt>Creator fee</dt>
-                  <dd>10% of simulated profits</dd>
+                  <dd>{modal.strategy.creatorFee}% of strategy profits</dd>
                 </div>
                 <div>
                   <dt>LPs in this strategy</dt>
@@ -2789,7 +2610,7 @@ function PoolersTerminal({
               </dl>
               {!modalValueValid && (
                 <p className="pt-field-error">
-                  Enter an amount within your available demo balance.
+                  Enter an amount within your available balance
                 </p>
               )}
               <button
@@ -2797,21 +2618,18 @@ function PoolersTerminal({
                 disabled={!modalValueValid}
                 onClick={() => joinStrategy(modal.strategy)}
               >
-                Join demo strategy <ArrowRight size={16} />
+                Join strategy <ArrowRight size={16} />
               </button>
             </>
           ) : modal.kind === "fund" ? (
             <>
-              <span className="pt-eyebrow">KEEP YOUR OWN FLOW</span>
               <h2 id="pt-dialog-title">
-                {modal.direction === "Deposit"
-                  ? "A little room to explore."
-                  : "Move at your own pace."}
+                {modal.direction === "Deposit" ? "Deposit" : "Withdraw"}
               </h2>
               <p>
                 {modal.direction === "Deposit"
-                  ? "Add simulated USDC to your demo wallet."
-                  : "Remove simulated USDC from your demo wallet."}
+                  ? "Enter an amount to deposit"
+                  : "Enter an amount to withdraw"}
               </p>
               <label className="pt-modal-input-label">
                 {modal.direction} amount
@@ -2833,7 +2651,7 @@ function PoolersTerminal({
                 </div>
               </label>
               <span className="pt-modal-available">
-                Current balance: {demoMoney(workspace.balances.USDC)} USDC
+                Current balance: {formatMoney(workspace.balances.USDC)} USDC
               </span>
               <div className="pt-quick-amounts">
                 {[100, 500, 1000].map((value) => (
@@ -2847,10 +2665,7 @@ function PoolersTerminal({
               </div>
               <div className="pt-modal-notice">
                 <ShieldCheck size={17} />
-                <span>
-                  Demo balance only. This does not deposit or withdraw any real
-                  asset.
-                </span>
+                <span>Available balance updates after confirmation</span>
               </div>
               {!modalValueValid && (
                 <p className="pt-field-error">
@@ -2866,7 +2681,7 @@ function PoolersTerminal({
                 disabled={!modalValueValid}
                 onClick={() => transferFunds(modal.direction)}
               >
-                {modal.direction} demo funds <ArrowRight size={16} />
+                {modal.direction} funds <ArrowRight size={16} />
               </button>
             </>
           ) : modal.kind === "exit" ? (
@@ -2876,33 +2691,32 @@ function PoolersTerminal({
               );
               return position ? (
                 <>
-                  <span className="pt-eyebrow">YOUR NEXT MOVE</span>
+                  <span className="pt-eyebrow">Manage position</span>
                   <h2 id="pt-dialog-title">
                     {position.kind === "created"
-                      ? "Close this chapter?"
-                      : "Find your next current?"}
+                      ? "Close strategy?"
+                      : "Exit strategy?"}
                   </h2>
                   <p>
-                    Close “{position.title}” and return its simulated principal
-                    to your demo wallet.
+                    Close “{position.title}” and return its principal to your
+                    wallet.
                   </p>
                   <dl className="pt-review-details">
                     <div>
                       <dt>Funds returned</dt>
                       <dd>
-                        {demoMoney(position.units)} {position.token}
+                        {formatMoney(position.units)} {position.token}
                       </dd>
                     </div>
                     <div>
-                      <dt>Demo value</dt>
-                      <dd>${demoMoney(position.usd)}</dd>
+                      <dt>Value</dt>
+                      <dd>${formatMoney(position.usd)}</dd>
                     </div>
                   </dl>
                   <div className="pt-modal-notice">
                     <ShieldCheck size={17} />
                     <span>
-                      No fees or real transactions. Your history will keep a
-                      record of this demo action.
+                      This action returns the position balance to your wallet
                     </span>
                   </div>
                   <button
@@ -2910,8 +2724,8 @@ function PoolersTerminal({
                     onClick={() => exitPosition(position.id)}
                   >
                     {position.kind === "created"
-                      ? "Close demo strategy"
-                      : "Exit demo strategy"}
+                      ? "Close strategy"
+                      : "Exit strategy"}
                     <ArrowRight size={16} />
                   </button>
                 </>
@@ -2919,32 +2733,27 @@ function PoolersTerminal({
             })()
           ) : modal.kind === "creator" ? (
             <>
-              <span className="pt-eyebrow">IN GOOD COMPANY</span>
+              <span className="pt-eyebrow">Creators</span>
               <h2 id="pt-dialog-title">@{modal.handle}</h2>
-              <p>
-                A thoughtful approach to liquidity. Explore this creator’s
-                sample strategies and find a perspective that fits yours.
-              </p>
+              <p>View this creator’s strategies</p>
               <div className="pt-creator-profile-stats">
                 <div>
                   <strong>
-                    {modal.handle === "marin.lp"
-                      ? 214
-                      : modal.handle === "alex.sol"
-                        ? 168
-                        : 122}
+                    {STRATEGIES.find(
+                      (strategy) => strategy.creator === modal.handle,
+                    )?.followersCount || 0}
                   </strong>
                   <span>followers</span>
                 </div>
                 <div>
                   <strong>
                     {
-                      DEMO_STRATEGIES.filter(
+                      STRATEGIES.filter(
                         (strategy) => strategy.creator === modal.handle,
                       ).length
                     }
                   </strong>
-                  <span>sample strategies</span>
+                  <span>strategies</span>
                 </div>
                 <div>
                   <strong>10%</strong>
@@ -2965,7 +2774,7 @@ function PoolersTerminal({
                 )}
               </button>
               <div className="pt-creator-modal-strategies">
-                {DEMO_STRATEGIES.filter(
+                {STRATEGIES.filter(
                   (strategy) => strategy.creator === modal.handle,
                 ).map((strategy) => (
                   <button
@@ -2980,7 +2789,7 @@ function PoolersTerminal({
                       <strong>{strategy.title}</strong>
                       <small>
                         {
-                          DEMO_POOLS.find((item) => item.id === strategy.poolId)
+                          MARKETS.find((item) => item.id === strategy.poolId)
                             ?.pair
                         }{" "}
                         · {strategy.shape}
@@ -3007,12 +2816,12 @@ function PoolersTerminal({
                   },
                 }));
                 setModal(null);
-                notify("Your demo profile has a fresh perspective.");
+                notify("Profile saved");
               }}
             >
-              <span className="pt-eyebrow">MAKE IT YOURS</span>
-              <h2 id="pt-dialog-title">A familiar face.</h2>
-              <p>Personalize your demo profile.</p>
+              <span className="pt-eyebrow">Profile</span>
+              <h2 id="pt-dialog-title">Edit profile</h2>
+              <p>Update your profile</p>
               <label className="pt-edit-field">
                 Display name
                 <input
@@ -3037,7 +2846,7 @@ function PoolersTerminal({
                 />
               </label>
               <label className="pt-edit-field">
-                A little about you
+                Bio
                 <textarea
                   maxLength={140}
                   value={editBio}
@@ -3045,33 +2854,33 @@ function PoolersTerminal({
                 />
               </label>
               <button className="pt-primary" type="submit">
-                Save demo profile <Check size={16} />
+                Save profile <Check size={16} />
               </button>
             </form>
           ) : (
             <>
-              <span className="pt-eyebrow">A FRESH PERSPECTIVE</span>
-              <h2 id="pt-dialog-title">Start a new chapter?</h2>
+              <span className="pt-eyebrow">Reset workspace</span>
+              <h2 id="pt-dialog-title">Reset workspace?</h2>
               <p>
-                This resets only your demo positions, balances, activity, and
-                profile in this browser.
+                This resets only your positions, balances, activity, and profile
+                in this browser.
               </p>
               <button
                 className="pt-primary"
                 onClick={() => {
-                  setWorkspace(newDemoWorkspace());
+                  setWorkspace(newWorkspace());
                   setModal(null);
                   setView("terminal");
-                  notify("Your demo workspace is back to a fresh start.");
+                  notify("Workspace reset");
                 }}
               >
-                Reset demo workspace <RotateCcw size={16} />
+                Reset workspace <RotateCcw size={16} />
               </button>
               <button
                 className="pt-modal-cancel"
                 onClick={() => setModal(null)}
               >
-                Keep exploring
+                Cancel
               </button>
             </>
           )}
@@ -3121,14 +2930,25 @@ function TerminalDialog({
     </dialog>
   );
 }
-function TokenPair({ pool }: { pool: DemoPool }) {
+function TokenPair({ pool }: { pool: PoolMarket }) {
   return (
-    <span className={`pt-token-pair tone-${pool.tone}`} aria-hidden="true">
-      <span>{pool.symbol === "SOL" ? "≋" : pool.symbol.slice(0, 1)}</span>
-      <span>{pool.quote === "SOL" ? "≋" : "$"}</span>
+    <span className="pt-token-pair" aria-hidden="true">
+      <img
+        src={pool.iconX || "/creators/default.svg"}
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+      <img
+        src={pool.iconY || "/creators/default.svg"}
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
     </span>
   );
 }
+
 function ShapeIcon({ shape }: { shape: string }) {
   return (
     <svg viewBox="0 0 32 20" width="25" height="18" aria-hidden="true">
@@ -3137,7 +2957,7 @@ function ShapeIcon({ shape }: { shape: string }) {
           shape === "Spot"
             ? 14
             : shape === "Curve"
-              ? 4 + 12 * Math.exp(-Math.pow((index - 4) / 2.5, 2))
+              ? 4 + (4 - Math.abs(index - 4)) * 3
               : 4 + Math.abs(index - 4) * 3;
         return (
           <rect
@@ -3154,222 +2974,408 @@ function ShapeIcon({ shape }: { shape: string }) {
     </svg>
   );
 }
-function LiquidityBars({
-  shape,
-  large = false,
-}: {
-  shape: string;
-  large?: boolean;
-}) {
-  return (
-    <div
-      className={`pt-liquidity-bars ${large ? "large" : ""}`}
-      role="img"
-      aria-label={`${shape} liquidity distribution preview`}
-    >
-      {Array.from({ length: 44 }, (_, index) => {
-        const center = (index - 21.5) / 21.5;
-        const height =
-          shape === "Spot"
-            ? 56 + Math.sin(index * 0.7) * 3
-            : shape === "Curve"
-              ? 15 + 70 * Math.exp(-Math.pow(center * 1.9, 2))
-              : 15 + Math.abs(center) * 70;
-        return (
-          <span
-            key={index}
-            style={{
-              height: `${height}%`,
-              background: index < 22 ? "#9f81eb" : "#63c6b9",
-              opacity: 0.45 + (0.55 - Math.abs(center) * 0.3),
-            }}
-          />
-        );
-      })}
-      <i />
-    </div>
-  );
-}
+type MarketBar = {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+};
+type MarketHistory = {
+  candles: MarketBar[];
+  source?: string;
+  updatedAt?: string;
+  history?: { stale?: boolean; updatedAt?: string };
+};
 function MarketCandles({
   pool,
   timeframe,
-  hovered,
-  onHover,
+  lowerPrice,
+  upperPrice,
+  chartUnit,
+  resetKey,
 }: {
-  pool: DemoPool;
+  pool: PoolMarket;
   timeframe: string;
-  hovered: number | null;
-  onHover: (index: number | null) => void;
+  lowerPrice: number;
+  upperPrice: number;
+  chartUnit: string;
+  resetKey: number;
 }) {
-  const seed = pool.id.length + timeframe.charCodeAt(0);
-  const candles = Array.from({ length: 50 }, (_, index) => {
-    const start =
-      0.97 +
-      index * 0.0008 +
-      Math.sin(index * 0.46 + seed) * 0.009 +
-      Math.cos(index * 0.13 + seed) * 0.016;
-    const close = start + Math.sin(index * 2.39 + seed) * 0.006;
-    return {
-      open: pool.price * start,
-      close: pool.price * close,
-      high:
-        pool.price *
-        (Math.max(start, close) + 0.003 + Math.abs(Math.sin(index)) * 0.004),
-      low:
-        pool.price *
-        (Math.min(start, close) - 0.003 - Math.abs(Math.cos(index)) * 0.004),
-      volume: 8 + Math.abs(Math.sin(index * 1.7 + seed)) * 38,
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const linesRef = useRef<IPriceLine[]>([]);
+  const [history, setHistory] = useState<MarketHistory | null>(null);
+  const [error, setError] = useState("");
+  const [focus, setFocus] = useState<MarketBar | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [band, setBand] = useState<{ top: number; height: number } | null>(
+    null,
+  );
+  const rangeRef = useRef({ lowerPrice, upperPrice });
+  rangeRef.current = { lowerPrice, upperPrice };
+  const multiplier =
+    chartUnit === "MCap" && pool.marketCapUsd > 0
+      ? pool.marketCapUsd / pool.price
+      : 1;
+  const chartPrice = (value: number) =>
+    chartUnit === "MCap"
+      ? new Intl.NumberFormat("en-US", {
+          notation: "compact",
+          maximumFractionDigits: 2,
+        }).format(value)
+      : formatMoney(value, value < 0.01 ? 8 : value < 1 ? 5 : 2);
+  useEffect(() => {
+    const controller = new AbortController();
+    setHistory(null);
+    setError("");
+    setFocus(null);
+    fetch(`/history/${pool.id}.json`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+      })
+      .then((value: MarketHistory) => {
+        if (!Array.isArray(value.candles) || !value.candles.length)
+          throw new Error();
+        setHistory(value);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError")
+          setError("Price history is unavailable");
+      });
+    return () => controller.abort();
+  }, [pool.id, retry]);
+  const bars = useMemo(() => {
+    if (!history) return [];
+    const interval =
+      (
+        {
+          "5m": 300,
+          "15m": 900,
+          "1H": 3600,
+          "4H": 14400,
+          "1D": 86400,
+        } as Record<string, number>
+      )[timeframe] || 300;
+    const buckets = new Map<number, MarketBar>();
+    for (const candle of [...history.candles].sort((a, b) => a.t - b.t)) {
+      if (
+        ![candle.t, candle.o, candle.h, candle.l, candle.c].every(
+          Number.isFinite,
+        ) ||
+        candle.c <= 0
+      )
+        continue;
+      const time = Math.floor(candle.t / 1000 / interval) * interval;
+      const previous = buckets.get(time);
+      if (previous) {
+        previous.h = Math.max(previous.h, candle.h);
+        previous.l = Math.min(previous.l, candle.l);
+        previous.c = candle.c;
+        previous.v += Number.isFinite(candle.v) ? candle.v : 0;
+      } else
+        buckets.set(time, {
+          ...candle,
+          t: time,
+          v: Number.isFinite(candle.v) ? candle.v : 0,
+        });
+    }
+    return [...buckets.values()];
+  }, [history, timeframe]);
+  const renderBand = () => {
+    const series = seriesRef.current;
+    if (!series) {
+      setBand(null);
+      return;
+    }
+    const lower = series.priceToCoordinate(
+      rangeRef.current.lowerPrice * multiplier,
+    );
+    const upper = series.priceToCoordinate(
+      rangeRef.current.upperPrice * multiplier,
+    );
+    if (lower === null || upper === null) {
+      setBand(null);
+      return;
+    }
+    const height = canvasRef.current?.clientHeight || 0;
+    const top = Math.max(0, Math.min(lower, upper));
+    setBand({
+      top,
+      height: Math.max(0, Math.min(height, Math.max(lower, upper)) - top),
+    });
+  };
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element || !bars.length) return;
+    const chart = createChart(element, {
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: "#101014" },
+        textColor: "#8c8c99",
+        fontFamily: "Inter, ui-sans-serif, sans-serif",
+        fontSize: 11,
+        attributionLogo: true,
+      },
+      grid: {
+        vertLines: { color: "#ffffff06" },
+        horzLines: { color: "#ffffff08" },
+      },
+      rightPriceScale: {
+        borderColor: "#ffffff0b",
+        scaleMargins: { top: 0.08, bottom: 0.2 },
+        minimumWidth: 66,
+      },
+      timeScale: {
+        borderColor: "#ffffff0b",
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: 5,
+        barSpacing: 8,
+        minBarSpacing: 3,
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: "#81818e", labelBackgroundColor: "#303038" },
+        horzLine: { color: "#81818e", labelBackgroundColor: "#303038" },
+      },
+      localization: {
+        priceFormatter: chartPrice,
+        timeFormatter: (time: Time) =>
+          new Date(Number(time) * 1000).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Ho_Chi_Minh",
+          }),
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
+      handleScale: {
+        axisPressedMouseMove: true,
+        mouseWheel: true,
+        pinch: true,
+      },
+    });
+    const candles = chart.addSeries(CandlestickSeries, {
+      upColor: "#2ecb9c",
+      downColor: "#ed6877",
+      borderUpColor: "#2ecb9c",
+      borderDownColor: "#ed6877",
+      wickUpColor: "#2ecb9c",
+      wickDownColor: "#ed6877",
+      priceLineColor: "#8d77c4",
+      priceLineStyle: LineStyle.Dashed,
+      priceLineWidth: 1,
+      lastValueVisible: true,
+      priceFormat: {
+        type: "custom",
+        formatter: chartPrice,
+        minMove:
+          pool.price < 0.01 ? 0.00000001 : pool.price < 1 ? 0.00001 : 0.01,
+      },
+    });
+    candles.setData(
+      bars.map((bar) => ({
+        time: bar.t as UTCTimestamp,
+        open: bar.o * multiplier,
+        high: bar.h * multiplier,
+        low: bar.l * multiplier,
+        close: bar.c * multiplier,
+      })),
+    );
+    const volume = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    volume
+      .priceScale()
+      .applyOptions({ scaleMargins: { top: 0.84, bottom: 0 }, visible: false });
+    volume.setData(
+      bars.map((bar) => ({
+        time: bar.t as UTCTimestamp,
+        value: bar.v,
+        color: bar.c >= bar.o ? "#2ecb9c26" : "#ed687726",
+      })),
+    );
+    chartRef.current = chart;
+    seriesRef.current = candles;
+    linesRef.current = [];
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(-1, bars.length - 90),
+      to: bars.length + 5,
+    });
+    const handleCrosshair = (parameter: MouseEventParams) => {
+      const row = parameter.seriesData.get(candles);
+      if (row && "open" in row) {
+        setFocus({
+          t: Number(parameter.time),
+          o: row.open / multiplier,
+          h: row.high / multiplier,
+          l: row.low / multiplier,
+          c: row.close / multiplier,
+          v: 0,
+        });
+      } else setFocus(null);
     };
-  });
-  const minimum = Math.min(...candles.map((item) => item.low)) * 0.997;
-  const maximum = Math.max(...candles.map((item) => item.high)) * 1.003;
-  const y = (value: number) =>
-    20 + ((maximum - value) / (maximum - minimum)) * 220;
-  const focus = candles[hovered ?? candles.length - 1];
-  const hours =
-    timeframe === "15m"
-      ? ["09:00", "09:15", "09:30", "09:45", "10:00"]
-      : timeframe === "1H"
-        ? ["06:00", "07:00", "08:00", "09:00", "10:00"]
-        : timeframe === "4H"
-          ? ["00:00", "04:00", "08:00", "12:00", "16:00"]
-          : ["MON", "TUE", "WED", "THU", "FRI"];
+    chart.subscribeCrosshairMove(handleCrosshair);
+    const refresh = () => {
+      const range = chart.timeScale().getVisibleLogicalRange();
+      if (range) {
+        element.dataset.visibleFrom = String(range.from);
+        element.dataset.visibleTo = String(range.to);
+      }
+      renderBand();
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
+    const resize = new ResizeObserver(() =>
+      window.requestAnimationFrame(refresh),
+    );
+    resize.observe(element);
+    window.requestAnimationFrame(refresh);
+    return () => {
+      resize.disconnect();
+      chart.unsubscribeCrosshairMove(handleCrosshair);
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+      linesRef.current = [];
+    };
+  }, [bars, multiplier, chartUnit, pool.id]);
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
+    for (const line of linesRef.current) series.removePriceLine(line);
+    linesRef.current = [
+      series.createPriceLine({
+        price: lowerPrice * multiplier,
+        color: "#9e85ea",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Min",
+      }),
+      series.createPriceLine({
+        price: upperPrice * multiplier,
+        color: "#59b7c9",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Max",
+      }),
+    ];
+    series.applyOptions({
+      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
+        const info = original();
+        return info?.priceRange
+          ? {
+              ...info,
+              priceRange: {
+                minValue:
+                  Math.min(info.priceRange.minValue, lowerPrice * multiplier) *
+                  0.999,
+                maxValue:
+                  Math.max(info.priceRange.maxValue, upperPrice * multiplier) *
+                  1.001,
+              },
+            }
+          : null;
+      },
+    });
+    const frame = window.requestAnimationFrame(renderBand);
+    return () => window.cancelAnimationFrame(frame);
+  }, [lowerPrice, upperPrice, multiplier, bars]);
+  useEffect(() => {
+    if (!chartRef.current || !bars.length) return;
+    chartRef.current.timeScale().setVisibleLogicalRange({
+      from: Math.max(-1, bars.length - 90),
+      to: bars.length + 5,
+    });
+  }, [resetKey]);
+  const current = focus || bars.at(-1);
   return (
-    <div className="pt-candle-chart">
+    <div
+      className="pt-candle-chart"
+      data-history-source={history?.source || ""}
+    >
       <div className="pt-ohlc">
         <span>
-          {pool.symbol} / USD <small>{timeframe}</small>
+          {pool.symbol} / USD <small>{timeframe.toLowerCase()}</small>
         </span>
-        <span>
-          O <b>{demoMoney(focus.open, pool.price < 0.01 ? 8 : 2)}</b>
-        </span>
-        <span>
-          H <b>{demoMoney(focus.high, pool.price < 0.01 ? 8 : 2)}</b>
-        </span>
-        <span>
-          L <b>{demoMoney(focus.low, pool.price < 0.01 ? 8 : 2)}</b>
-        </span>
-        <span className={focus.close >= focus.open ? "positive" : "negative"}>
-          C <b>{demoMoney(focus.close, pool.price < 0.01 ? 8 : 2)}</b>
-        </span>
+        {current && (
+          <>
+            <span>
+              O <b>{chartPrice(current.o * multiplier)}</b>
+            </span>
+            <span>
+              H <b>{chartPrice(current.h * multiplier)}</b>
+            </span>
+            <span>
+              L <b>{chartPrice(current.l * multiplier)}</b>
+            </span>
+            <span className={current.c >= current.o ? "positive" : "negative"}>
+              C <b>{chartPrice(current.c * multiplier)}</b>
+            </span>
+          </>
+        )}
       </div>
-      <svg
-        viewBox="0 0 700 320"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Illustrative ${pool.pair} candlestick chart, ${timeframe} timeframe`}
-        onPointerMove={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          onHover(
-            Math.max(
-              0,
-              Math.min(
-                49,
-                Math.floor(((event.clientX - rect.left) / rect.width) * 50),
-              ),
-            ),
-          );
-        }}
-        onPointerLeave={() => onHover(null)}
-      >
-        {[0, 1, 2, 3, 4].map((index) => (
-          <g key={index}>
-            <path
-              d={`M0 ${25 + index * 52}H700`}
-              stroke="#ffffff08"
-              strokeDasharray="3 5"
-            />
-            <text
-              x="695"
-              y={20 + index * 52}
-              textAnchor="end"
-              fill="#686574"
-              fontSize="9"
-            >
-              {demoMoney(
-                maximum - ((maximum - minimum) * index) / 4,
-                pool.price < 0.01 ? 7 : 2,
-              )}
-            </text>
-          </g>
-        ))}
-        {candles.map((candle, index) => {
-          const color = candle.close >= candle.open ? "#70cab4" : "#c17c93";
-          const x = 8 + index * 12.6;
-          return (
-            <g
-              key={index}
-              opacity={hovered === null || hovered === index ? 1 : 0.5}
-            >
-              <path
-                d={`M${x + 3} ${y(candle.high)}V${y(candle.low)}`}
-                stroke={color}
-                strokeWidth="1.2"
-              />
-              <rect
-                x={x}
-                y={Math.min(y(candle.open), y(candle.close))}
-                width="6"
-                height={Math.max(2, Math.abs(y(candle.close) - y(candle.open)))}
-                rx="1"
-                fill={color}
-              />
-              <rect
-                x={x}
-                y={300 - candle.volume}
-                width="6"
-                height={candle.volume}
-                rx="1"
-                fill={color}
-                opacity=".18"
-              />
-            </g>
-          );
-        })}
-        <path
-          d={`M0 ${y(pool.price)}H700`}
-          stroke="#a894db"
-          strokeDasharray="4 5"
-          strokeOpacity=".6"
+      <div className="pt-chart-stage">
+        <div
+          ref={canvasRef}
+          className="pt-chart-canvas"
+          role="img"
+          aria-label={`${pool.pair} ${chartUnit === "MCap" ? "market cap" : "price"} chart, ${timeframe}`}
+          data-range-min={lowerPrice}
+          data-range-max={upperPrice}
         />
-        <rect
-          x="640"
-          y={y(pool.price) - 10}
-          width="60"
-          height="20"
-          rx="4"
-          fill="#bda7ee"
-        />
-        <text
-          x="670"
-          y={y(pool.price) + 3}
-          textAnchor="middle"
-          fontSize="9"
-          fill="#231739"
-        >
-          {demoMoney(pool.price, pool.price < 0.01 ? 7 : 2)}
-        </text>
-        {hovered !== null && (
-          <path
-            d={`M${11 + hovered * 12.6} 0V304`}
-            stroke="#d6c3ff50"
-            strokeDasharray="3 4"
+        {band && bars.length > 0 && (
+          <div
+            className="pt-chart-selected-band"
+            style={{ top: band.top, height: band.height }}
+            aria-hidden="true"
           />
         )}
-      </svg>
-      <div className="pt-chart-times">
-        {hours.map((hour) => (
-          <span key={hour}>{hour}</span>
-        ))}
+        {!history && !error && (
+          <div className="pt-chart-loading">Loading chart</div>
+        )}
+        {error && (
+          <div className="pt-chart-loading">
+            <span>{error}</span>
+            <button onClick={() => setRetry((value) => value + 1)}>
+              Retry
+            </button>
+          </div>
+        )}
       </div>
-      <div className="pt-chart-watermark">
-        <BrandMark size={22} />
-        poolers
+      <div className="pt-chart-source">
+        <span>{history?.source || "Price / USD"}</span>
+        <span>
+          {history?.updatedAt
+            ? new Date(history.updatedAt).toLocaleString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Ho_Chi_Minh",
+              }) + " GMT+7"
+            : ""}
+        </span>
       </div>
     </div>
   );
 }
-function DemoHistoryRow({ event }: { event: DemoEvent }) {
+
+function ActivityRow({ event }: { event: ActivityEvent }) {
   return (
     <div className="pt-history-row">
       <span className="pt-history-icon">
@@ -3389,7 +3395,7 @@ function DemoHistoryRow({ event }: { event: DemoEvent }) {
       </div>
       <div>
         <strong>
-          {demoMoney(event.amount)} {event.token}
+          {formatMoney(event.amount)} {event.token}
         </strong>
         <span>
           {new Date(event.date).toLocaleDateString("en-US", {
@@ -3400,6 +3406,601 @@ function DemoHistoryRow({ event }: { event: DemoEvent }) {
         </span>
       </div>
       <CheckCircle2 size={13} />
+    </div>
+  );
+}
+
+type BinRangeControlProps = {
+  price: number;
+  binStep?: number;
+  lowerBin: number;
+  upperBin: number;
+  shape: string;
+  side: "fifty_fifty" | "base" | "quote";
+  onRangeChange: (lower: number, upper: number) => void;
+};
+
+const RANGE_FIRST_BIN = -80;
+const RANGE_LAST_BIN = 80;
+
+function binControlClamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function binControlPriceFormat(value: number) {
+  if (!Number.isFinite(value) || value === 0) return "0";
+  const magnitude = Math.abs(value);
+  const decimals =
+    magnitude >= 1000
+      ? 2
+      : magnitude >= 1
+        ? 4
+        : Math.min(20, Math.ceil(-Math.log10(magnitude)) + 5);
+  return new Intl.NumberFormat("en-US", {
+    useGrouping: false,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: Math.max(0, decimals),
+  }).format(value);
+}
+
+function binControlPercent(value: number) {
+  return `${value > 0 ? "+" : ""}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  }).format(value)}%`;
+}
+
+/**
+ * Prices are exact DLMM bin prices: activePrice * (1 + binStep / 10000)^bin.
+ * The selected distribution includes both edge bins; -35..34 is 70 bins.
+ * The caller owns values; dragging, keyboard and fields all emit the same bins.
+ */
+function BinRangeControl({
+  price,
+  binStep = 20,
+  lowerBin,
+  upperBin,
+  shape,
+  side,
+  onRangeChange,
+}: BinRangeControlProps) {
+  const titleId = useId();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const lowerRef = useRef<HTMLButtonElement>(null);
+  const upperRef = useRef<HTMLButtonElement>(null);
+  const dragRef = useRef<{ pointerId: number; edge: "lower" | "upper" } | null>(
+    null,
+  );
+  const [dragging, setDragging] = useState<"lower" | "upper" | null>(null);
+  const lower = binControlClamp(
+    Number.isFinite(lowerBin) ? Math.round(lowerBin) : -35,
+    RANGE_FIRST_BIN,
+    RANGE_LAST_BIN - 1,
+  );
+  const upper = binControlClamp(
+    Number.isFinite(upperBin) ? Math.round(upperBin) : 35,
+    lower + 1,
+    RANGE_LAST_BIN,
+  );
+  const rangeRef = useRef({ lower, upper });
+  rangeRef.current = { lower, upper };
+  const step = Number.isFinite(binStep) && binStep > 0 ? binStep : 20;
+  const rate = 1 + step / 10000;
+  const activePrice = Number.isFinite(price) && price > 0 ? price : 0;
+  const priceAtBin = (bin: number) => activePrice * Math.pow(rate, bin);
+  const fractionAtBin = (bin: number) =>
+    (bin - RANGE_FIRST_BIN) / (RANGE_LAST_BIN - RANGE_FIRST_BIN);
+
+  const publish = (edge: "lower" | "upper", requested: number) => {
+    const current = rangeRef.current;
+    const next =
+      edge === "lower"
+        ? {
+            lower: binControlClamp(
+              Math.round(requested),
+              RANGE_FIRST_BIN,
+              current.upper - 1,
+            ),
+            upper: current.upper,
+          }
+        : {
+            lower: current.lower,
+            upper: binControlClamp(
+              Math.round(requested),
+              current.lower + 1,
+              RANGE_LAST_BIN,
+            ),
+          };
+    rangeRef.current = next;
+    if (next.lower !== current.lower || next.upper !== current.upper)
+      onRangeChange(next.lower, next.upper);
+    return edge === "lower" ? next.lower : next.upper;
+  };
+
+  const binAtPointer = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return 0;
+    const fraction = binControlClamp((clientX - rect.left) / rect.width, 0, 1);
+    return Math.round(
+      RANGE_FIRST_BIN + fraction * (RANGE_LAST_BIN - RANGE_FIRST_BIN),
+    );
+  };
+
+  const beginDrag = (
+    event: RangePointerEvent<HTMLElement>,
+    edge?: "lower" | "upper",
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const candidate = binAtPointer(event.clientX);
+    const current = rangeRef.current;
+    // The hit boxes overlap when the range is narrow. Select the nearer grip.
+    const closest =
+      Math.abs(candidate - current.lower) < Math.abs(candidate - current.upper)
+        ? "lower"
+        : "upper";
+    const selected =
+      edge && Math.abs(current.upper - current.lower) > 8 ? edge : closest;
+    dragRef.current = { pointerId: event.pointerId, edge: selected };
+    setDragging(selected);
+    (selected === "lower" ? lowerRef.current : upperRef.current)?.focus({
+      preventScroll: true,
+    });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    publish(selected, candidate);
+  };
+
+  const moveDrag = (event: RangePointerEvent<HTMLElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    publish(drag.edge, binAtPointer(event.clientX));
+  };
+
+  const finishDrag = (event: RangePointerEvent<HTMLElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragging(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const keyboard = (
+    event: RangeKeyboardEvent<HTMLElement>,
+    edge: "lower" | "upper",
+  ) => {
+    const current = rangeRef.current;
+    const value = current[edge];
+    const increment = event.shiftKey ? 10 : 1;
+    const next =
+      event.key === "ArrowLeft" || event.key === "ArrowDown"
+        ? value - increment
+        : event.key === "ArrowRight" || event.key === "ArrowUp"
+          ? value + increment
+          : event.key === "Home"
+            ? edge === "lower"
+              ? RANGE_FIRST_BIN
+              : current.lower + 1
+            : event.key === "End"
+              ? edge === "lower"
+                ? current.upper - 1
+                : RANGE_LAST_BIN
+              : null;
+    if (next === null) return;
+    event.preventDefault();
+    publish(edge, next);
+  };
+
+  const commitPrice = (edge: "lower" | "upper", raw: string) => {
+    const typed = Number(raw.replace(/[$,\s]/g, ""));
+    if (!activePrice)
+      return {
+        value: binControlPriceFormat(priceAtBin(rangeRef.current[edge])),
+        error: "Price data is unavailable",
+      };
+    if (!raw.trim() || !Number.isFinite(typed) || typed <= 0) {
+      return {
+        value: binControlPriceFormat(priceAtBin(rangeRef.current[edge])),
+        error: "Enter a price above zero",
+      };
+    }
+    const requested = Math.round(
+      Math.log(typed / activePrice) / Math.log(rate),
+    );
+    const next = publish(edge, requested);
+    return { value: binControlPriceFormat(priceAtBin(next)) };
+  };
+
+  const heightAtBin = (bin: number) => {
+    const selected = bin >= lower && bin <= upper;
+    if (!selected) return 2;
+    const normalizedShape = shape.toLowerCase().replace(/[\s_-]/g, "");
+    if (normalizedShape === "curve" && side === "fifty_fifty")
+      return (
+        88 *
+        Math.max(
+          0,
+          1 - Math.abs(bin) / Math.max(1, Math.abs(lower), Math.abs(upper)),
+        )
+      );
+    if (normalizedShape === "bidask" && side === "fifty_fifty")
+      return (
+        (88 * Math.abs(bin)) / Math.max(1, Math.abs(lower), Math.abs(upper))
+      );
+    return 76;
+  };
+
+  const binColor = (bin: number) =>
+    side === "base"
+      ? "var(--range-base, #8d69dd)"
+      : side === "quote"
+        ? "var(--range-quote, #38b5ca)"
+        : bin < 0
+          ? "var(--range-quote, #38b5ca)"
+          : "var(--range-base, #8d69dd)";
+
+  const pointerHandlers = {
+    onPointerMove: moveDrag,
+    onPointerUp: finishDrag,
+    onPointerCancel: finishDrag,
+    onLostPointerCapture: () => {
+      dragRef.current = null;
+      setDragging(null);
+    },
+  };
+
+  return (
+    <div className="bin-range-control" role="group" aria-labelledby={titleId}>
+      <span className="bin-range-sr-only" id={titleId}>
+        Liquidity price range
+      </span>
+      <div className="bin-range-chart">
+        <div
+          className="bin-range-track"
+          ref={trackRef}
+          onPointerDown={(event) => beginDrag(event)}
+          {...pointerHandlers}
+        >
+          <div className="bin-range-bars" aria-hidden="true">
+            {Array.from(
+              { length: RANGE_LAST_BIN - RANGE_FIRST_BIN + 1 },
+              (_, index) => {
+                const bin = RANGE_FIRST_BIN + index;
+                const selected = bin >= lower && bin <= upper;
+                return (
+                  <span
+                    key={bin}
+                    data-bin={bin}
+                    data-selected={selected ? "true" : "false"}
+                    style={{
+                      height: `${heightAtBin(bin)}%`,
+                      backgroundColor: binColor(bin),
+                      opacity: selected ? 0.95 : 0.28,
+                    }}
+                  />
+                );
+              },
+            )}
+          </div>
+          <span className="bin-range-active-line" aria-hidden="true" />
+          <button
+            ref={lowerRef}
+            type="button"
+            role="slider"
+            aria-label="Minimum price range"
+            aria-valuemin={RANGE_FIRST_BIN}
+            aria-valuemax={upper - 1}
+            aria-valuenow={lower}
+            aria-valuetext={`${binControlPriceFormat(priceAtBin(lower))}, ${binControlPercent((Math.pow(rate, lower) - 1) * 100)}, bin ${lower}`}
+            aria-orientation="horizontal"
+            className={`bin-range-handle is-lower ${dragging === "lower" ? "is-dragging" : ""}`}
+            style={{ left: `${fractionAtBin(lower) * 100}%` }}
+            onPointerDown={(event) => beginDrag(event, "lower")}
+            onKeyDown={(event) => keyboard(event, "lower")}
+            {...pointerHandlers}
+          >
+            <span className="bin-range-handle-line" />
+            <span className="bin-range-handle-knob">
+              <i />
+              <i />
+            </span>
+          </button>
+          <button
+            ref={upperRef}
+            type="button"
+            role="slider"
+            aria-label="Maximum price range"
+            aria-valuemin={lower + 1}
+            aria-valuemax={RANGE_LAST_BIN}
+            aria-valuenow={upper}
+            aria-valuetext={`${binControlPriceFormat(priceAtBin(upper))}, ${binControlPercent((Math.pow(rate, upper) - 1) * 100)}, bin ${upper}`}
+            aria-orientation="horizontal"
+            className={`bin-range-handle is-upper ${dragging === "upper" ? "is-dragging" : ""}`}
+            style={{ left: `${fractionAtBin(upper) * 100}%` }}
+            onPointerDown={(event) => beginDrag(event, "upper")}
+            onKeyDown={(event) => keyboard(event, "upper")}
+            {...pointerHandlers}
+          >
+            <span className="bin-range-handle-line" />
+            <span className="bin-range-handle-knob">
+              <i />
+              <i />
+            </span>
+          </button>
+        </div>
+      </div>
+      <div className="bin-range-axis" aria-hidden="true">
+        <span>{binControlPriceFormat(priceAtBin(RANGE_FIRST_BIN))}</span>
+        <span>{binControlPriceFormat(activePrice)}</span>
+        <span>{binControlPriceFormat(priceAtBin(RANGE_LAST_BIN))}</span>
+      </div>
+      <div className="bin-range-fields">
+        <BinControlPriceField
+          label="Min price"
+          value={priceAtBin(lower)}
+          percentage={(Math.pow(rate, lower) - 1) * 100}
+          canDecrease={lower > RANGE_FIRST_BIN}
+          canIncrease={lower < upper - 1}
+          onCommit={(raw) => commitPrice("lower", raw)}
+          onStep={(delta) =>
+            binControlPriceFormat(
+              priceAtBin(publish("lower", rangeRef.current.lower + delta)),
+            )
+          }
+        />
+        <BinControlPriceField
+          label="Max price"
+          value={priceAtBin(upper)}
+          percentage={(Math.pow(rate, upper) - 1) * 100}
+          canDecrease={upper > lower + 1}
+          canIncrease={upper < RANGE_LAST_BIN}
+          onCommit={(raw) => commitPrice("upper", raw)}
+          onStep={(delta) =>
+            binControlPriceFormat(
+              priceAtBin(publish("upper", rangeRef.current.upper + delta)),
+            )
+          }
+        />
+      </div>
+      <div className="bin-range-count">
+        Total bins <output aria-live="polite">{upper - lower + 1}</output>
+      </div>
+    </div>
+  );
+}
+
+function BinControlPriceField({
+  label,
+  value,
+  percentage,
+  canDecrease,
+  canIncrease,
+  onCommit,
+  onStep,
+}: {
+  label: string;
+  value: number;
+  percentage: number;
+  canDecrease: boolean;
+  canIncrease: boolean;
+  onCommit: (raw: string) => { value: string; error?: string };
+  onStep: (delta: number) => string;
+}) {
+  const id = useId();
+  const [draft, setDraft] = useState(binControlPriceFormat(value));
+  const [focused, setFocused] = useState(false);
+  const [error, setError] = useState("");
+  const cancelRef = useRef(false);
+  const formatted = binControlPriceFormat(value);
+  useEffect(() => {
+    if (!focused) setDraft(formatted);
+  }, [formatted, focused]);
+  const stepField = (delta: number) => {
+    setDraft(onStep(delta));
+    setError("");
+  };
+
+  return (
+    <div className="bin-price-field">
+      <label htmlFor={id}>{label}</label>
+      <div className="bin-price-input-row">
+        <button
+          type="button"
+          aria-label={`Decrease ${label.toLowerCase()} by one bin`}
+          disabled={!canDecrease}
+          onClick={() => stepField(-1)}
+        >
+          <Minus size={12} strokeWidth={1.5} />
+        </button>
+        <input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          spellCheck={false}
+          autoComplete="off"
+          aria-label={label === "Min price" ? "Minimum price" : "Maximum price"}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          value={draft}
+          maxLength={32}
+          onFocus={() => setFocused(true)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setError("");
+          }}
+          onBlur={() => {
+            setFocused(false);
+            if (cancelRef.current) {
+              cancelRef.current = false;
+              setDraft(formatted);
+              setError("");
+              return;
+            }
+            const result = onCommit(draft);
+            setDraft(result.value);
+            setError(result.error || "");
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              cancelRef.current = true;
+              setDraft(formatted);
+              event.currentTarget.blur();
+            } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+              event.preventDefault();
+              stepField(
+                (event.key === "ArrowUp" ? 1 : -1) * (event.shiftKey ? 10 : 1),
+              );
+            }
+          }}
+        />
+        <button
+          type="button"
+          aria-label={`Increase ${label.toLowerCase()} by one bin`}
+          disabled={!canIncrease}
+          onClick={() => stepField(1)}
+        >
+          <Plus size={12} strokeWidth={1.5} />
+        </button>
+      </div>
+      <span
+        className={`bin-price-change ${percentage < 0 ? "is-negative" : "is-positive"}`}
+      >
+        {binControlPercent(percentage)}
+      </span>
+      {error && (
+        <span className="bin-price-error" id={`${id}-error`} role="status">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The original fee geometry: a 20px thumb center travels from x=10 to width-10. */
+function FeeControl({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const id = useId();
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<number | null>(null);
+  const current = binControlClamp(
+    Number.isFinite(value) ? Math.round(value) : 10,
+    5,
+    25,
+  );
+  const valueRef = useRef(current);
+  valueRef.current = current;
+  const [dragging, setDragging] = useState(false);
+  const fraction = (current - 5) / 20;
+  const publish = (next: number) => {
+    const normalized = binControlClamp(Math.round(next), 5, 25);
+    if (normalized !== valueRef.current) {
+      valueRef.current = normalized;
+      onChange(normalized);
+    }
+  };
+  const valueAtPointer = (clientX: number) => {
+    const rect = sliderRef.current?.getBoundingClientRect();
+    if (!rect) return current;
+    const ratio = binControlClamp(
+      (clientX - rect.left - 10) / Math.max(1, rect.width - 20),
+      0,
+      1,
+    );
+    return 5 + ratio * 20;
+  };
+  const finishDrag = (event: RangePointerEvent<HTMLDivElement>) => {
+    if (dragRef.current !== event.pointerId) return;
+    dragRef.current = null;
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+  return (
+    <div className="fee-control">
+      <label id={`${id}-label`}>Social LP profit</label>
+      <p>% of followers’ profits you earn</p>
+      <div
+        ref={sliderRef}
+        className={`fee-slider ${dragging ? "is-dragging" : ""}`}
+        role="slider"
+        tabIndex={0}
+        aria-labelledby={`${id}-label`}
+        aria-valuemin={5}
+        aria-valuemax={25}
+        aria-valuenow={current}
+        aria-valuetext={`${current}%`}
+        aria-orientation="horizontal"
+        onPointerDown={(event) => {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          event.preventDefault();
+          dragRef.current = event.pointerId;
+          setDragging(true);
+          event.currentTarget.focus({ preventScroll: true });
+          event.currentTarget.setPointerCapture(event.pointerId);
+          publish(valueAtPointer(event.clientX));
+        }}
+        onPointerMove={(event) => {
+          if (dragRef.current === event.pointerId) {
+            event.preventDefault();
+            publish(valueAtPointer(event.clientX));
+          }
+        }}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        onLostPointerCapture={() => {
+          dragRef.current = null;
+          setDragging(false);
+        }}
+        onKeyDown={(event) => {
+          const delta = event.shiftKey ? 5 : 1;
+          const next =
+            event.key === "ArrowLeft" || event.key === "ArrowDown"
+              ? valueRef.current - delta
+              : event.key === "ArrowRight" || event.key === "ArrowUp"
+                ? valueRef.current + delta
+                : event.key === "Home"
+                  ? 5
+                  : event.key === "End"
+                    ? 25
+                    : null;
+          if (next !== null) {
+            event.preventDefault();
+            publish(next);
+          }
+        }}
+      >
+        <div className="fee-slider-rail">
+          <span
+            className="fee-slider-fill"
+            style={{ width: `${fraction * 100}%` }}
+          />
+          <span
+            className="fee-slider-thumb"
+            style={{ left: `${fraction * 100}%` }}
+          />
+          <output
+            style={{ left: `clamp(8px, ${fraction * 100}%, calc(100% - 8px))` }}
+            aria-hidden="true"
+          >
+            {current}%
+          </output>
+        </div>
+      </div>
+      <div className="fee-slider-labels" aria-hidden="true">
+        <span>5%</span>
+        <span>25%</span>
+      </div>
     </div>
   );
 }
