@@ -31,11 +31,12 @@ Application components live in `src/App.tsx`; styles live in `src/index.css`. Re
 ## Controls
 
 - Social LP profit: 5–25%, 1% steps, pointer capture, and keyboard support.
-- Price range: original bin-price math, two non-crossing drag handles, direct price entry, and one-bin +/- controls.
+- Price range: original bin-price math, non-crossing histogram handles, draggable Min/Max price cards and chart markers, direct price entry, and one-bin +/- controls.
 - Allocation: balanced, base-only, or quote-only presets. Shape and selected bins update together.
 - Price chart: original OHLC history, volume, crosshair, pan, zoom, timeframe aggregation, price/market-cap views, and linked minimum/maximum price lines.
 - Workspace: collapsible discovery, expanded chart with Escape recovery, pointer/keyboard chart-height adjustment, and a visible strategy action while the desktop composer scrolls.
 - Social discovery: actual creator avatars, persistent follows, All creators/Following filters, join actions, and copyable strategy links.
+- Search and filters: pool/creator suggestions, keyboard selection, branded listboxes, pool sorting/category/liquidity filters, and strategy sorting/creator/fee filters.
 - Accessibility: skip links, announced selected states, keyboard slider instructions, larger touch controls, high-contrast focus rings, and an expandable recent-candle data table.
 
 ## Data and local interactions
@@ -48,13 +49,15 @@ New position activity carries an explicit pool ID, so history remains scoped cor
 
 The purple P is rendered as an inline vector in the interface. The matching standalone asset is `public/poolers-mark.svg`.
 
-Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Orange marks focus and active social controls; secondary actions stay neutral.
+Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Lavender marks keyboard focus and selection; orange remains an accent fill/text color. Secondary actions stay neutral.
 
 ## Review and attribution
 
 The design pass used [UX Audit by paulunemoon](https://github.com/paulunemoon/ux-audit-skill) and [Unslop by Damir Sokolovsky](https://github.com/heydamir/unslop). Unslop is licensed under CC BY 4.0; this credit is retained for the applied workflow. Evidence, prioritized changes, and remaining differences are recorded in `ux-audit-terminal-2026-11-08.md`, `ux-audit-polish-2026-11-09.md`, and `ux-audit-fomo-reference-2026-11-09.md`.
 
 TradingView Lightweight Charts is Apache 2.0 licensed. Its chart attribution remains visible. See `THIRD_PARTY_NOTICES.md` for third-party references.
+
+Search/menu/filter and direct price-control behavior is documented in `interaction-review-2026-11-10.md`.
 
 ## Deployment
 

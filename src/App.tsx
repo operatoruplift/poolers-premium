@@ -16,6 +16,7 @@ import strategyCatalog from "../public/strategy-catalog.json";
 import marketCatalog from "../public/market-catalog.json";
 import {
   useEffect,
+  useLayoutEffect,
   useId,
   useRef,
   useMemo,
@@ -25,7 +26,9 @@ import {
   type FormEvent,
   type ReactNode,
   type CSSProperties,
+  type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   motion,
   MotionConfig,
@@ -459,22 +462,25 @@ function SignUp({
                       </label>
                     ))}
                   </fieldset>
-                  <label className="signup-select-label">
-                    Your experience
-                    <select
+                  <div className="signup-select-label">
+                    <span>Your experience</span>
+                    <BrandSelect
+                      id="profile-experience"
+                      label="Your experience"
                       value={profile.experience}
-                      onChange={(event) =>
+                      onChange={(experience) =>
                         setProfile({
                           ...profile,
-                          experience: event.target.value,
+                          experience,
                         })
                       }
-                    >
-                      <option>Getting started</option>
-                      <option>A few pools in</option>
-                      <option>Experienced LP</option>
-                    </select>
-                  </label>
+                      options={[
+                        { value: "Getting started", label: "Getting started" },
+                        { value: "A few pools in", label: "A few pools in" },
+                        { value: "Experienced LP", label: "Experienced LP" },
+                      ]}
+                    />
+                  </div>
                   <button type="submit" className="signup-submit">
                     Continue <ArrowRight size={17} />
                   </button>
@@ -1184,6 +1190,15 @@ function formatPrice(value: number) {
 function roundAmount(value: number) {
   return Math.round(value * 1000000) / 1000000;
 }
+function marketAmount(value: string) {
+  const match = value.replaceAll(",", "").match(/([\d.]+)\s*([KMB])?/i);
+  return match
+    ? Number(match[1]) *
+        ({ K: 1000, M: 1000000, B: 1000000000 }[
+          match[2]?.toUpperCase() as "K" | "M" | "B"
+        ] || 1)
+    : 0;
+}
 type TerminalModal =
   | null
   | { kind: "wallet" | "review" | "edit" | "reset" }
@@ -1226,6 +1241,13 @@ function PoolersTerminal({
   const [discovery, setDiscovery] = useState("Strategies");
   const [strategyFeed, setStrategyFeed] = useState<"All" | "Following">("All");
   const [category, setCategory] = useState("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [poolSort, setPoolSort] = useState<"tvl" | "volume" | "change">("tvl");
+  const [strategySort, setStrategySort] = useState<"value" | "pnl" | "members">(
+    "value",
+  );
+  const [minLiquidity, setMinLiquidity] = useState("");
+  const [maxCreatorFee, setMaxCreatorFee] = useState(25);
   const [query, setQuery] = useState("");
   const [timeframe, setTimeframe] = useState("5m");
   const [marketTab, setMarketTab] = useState("Chart");
@@ -1256,6 +1278,7 @@ function PoolersTerminal({
   const [discoveryCollapsed, setDiscoveryCollapsed] = useState(false);
   const [chartExpanded, setChartExpanded] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const followingFeedRef = useRef<HTMLButtonElement>(null);
   const pendingWalletAction = useRef<TerminalModal>(null);
   const pool = MARKETS.find((item) => item.id === selectedId)!;
@@ -1269,7 +1292,15 @@ function PoolersTerminal({
   const filteredPools = MARKETS.filter(
     (item) =>
       (category === "All" || item.category === category) &&
-      `${item.pair} ${item.symbol}`.toLowerCase().includes(searchQuery),
+      `${item.pair} ${item.symbol} ${item.address}`
+        .toLowerCase()
+        .includes(searchQuery) &&
+      marketAmount(item.tvl) >= Math.max(0, Number(minLiquidity) || 0),
+  ).sort((a, b) =>
+    poolSort === "change"
+      ? b.change - a.change
+      : marketAmount(b[poolSort === "tvl" ? "tvl" : "volume"]) -
+        marketAmount(a[poolSort === "tvl" ? "tvl" : "volume"]),
   );
   const activePositions = workspace.positions.filter(
     (position) => position.status === "active",
@@ -1305,10 +1336,34 @@ function PoolersTerminal({
     (strategy) =>
       (strategyFeed === "All" ||
         workspace.following.includes(strategy.creator)) &&
+      strategy.creatorFee <= maxCreatorFee &&
       `${strategy.title} ${strategy.creator} ${MARKETS.find((item) => item.id === strategy.poolId)?.pair}`
         .toLowerCase()
         .includes(searchQuery),
+  ).sort((a, b) =>
+    strategySort === "pnl"
+      ? b.apr - a.apr
+      : strategySort === "members"
+        ? b.members - a.members
+        : b.valueUsd - a.valueUsd,
   );
+  const activeFilterCount =
+    discovery === "Pools"
+      ? Number(category !== "All") +
+        Number(Number(minLiquidity) > 0) +
+        Number(poolSort !== "tvl")
+      : Number(strategyFeed !== "All") +
+        Number(maxCreatorFee < 25) +
+        Number(strategySort !== "value");
+  const resetDiscoveryFilters = () => {
+    setQuery("");
+    setCategory("All");
+    setStrategyFeed("All");
+    setMinLiquidity("");
+    setMaxCreatorFee(25);
+    setPoolSort("tvl");
+    setStrategySort("value");
+  };
   const modalValue = Number(modalAmount);
   const modalValueValid =
     modalAmount.trim() !== "" &&
@@ -1336,7 +1391,12 @@ function PoolersTerminal({
         setChartExpanded(false);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        searchRef.current?.focus();
+        if (document.querySelector("dialog[open]")) return;
+        if (window.matchMedia("(max-width: 540px)").matches) {
+          setView("terminal");
+          setMobilePanel("Discover");
+          window.requestAnimationFrame(() => mobileSearchRef.current?.focus());
+        } else searchRef.current?.focus();
       }
     };
     window.addEventListener("keydown", listener);
@@ -1619,31 +1679,35 @@ function PoolersTerminal({
           <BrandMark size={32} />
           <span>Poolers</span>
         </button>
-        <label className="pt-global-search">
-          <Search size={16} />
-          <input
-            ref={searchRef}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setStrategyFeed("All");
-              setDiscovery(
-                CREATORS.some(
-                  (creator) =>
-                    creator.includes(event.target.value.toLowerCase()) &&
-                    event.target.value.length > 1,
-                )
-                  ? "Strategies"
-                  : "Pools",
-              );
-              setView("terminal");
-              setMobilePanel("Discover");
-            }}
-            placeholder="Pools, tokens, creators"
-            aria-label="Search pools and strategies"
-          />
-          <kbd>⌘ K</kbd>
-        </label>
+        <PoolSearch
+          value={query}
+          inputRef={searchRef}
+          label="Search pools, tokens, or creators"
+          placeholder="Pools, tokens, creators"
+          onChange={(value) => {
+            setQuery(value);
+            setStrategyFeed("All");
+            setDiscovery(
+              CREATORS.some(
+                (creator) =>
+                  creator.includes(value.toLowerCase().replace(/^@/, "")) &&
+                  value.length > 1,
+              )
+                ? "Strategies"
+                : "Pools",
+            );
+            setView("terminal");
+            setMobilePanel("Discover");
+          }}
+          onSelectPool={(id) => {
+            resetDiscoveryFilters();
+            selectPool(id);
+          }}
+          onSelectCreator={(handle) => {
+            setQuery("");
+            setModal({ kind: "creator", handle });
+          }}
+        />
         <nav aria-label="Application navigation">
           <button
             className={view === "terminal" ? "active" : ""}
@@ -1741,34 +1805,44 @@ function PoolersTerminal({
                 ))}
                 <button
                   className="pt-icon-button"
-                  title="Reset filters"
-                  aria-label="Reset discovery filters"
-                  onClick={() => {
-                    setQuery("");
-                    setCategory("All");
-                    setStrategyFeed("All");
-                  }}
+                  title="Discovery filters"
+                  aria-label="Open discovery filters"
+                  aria-haspopup="dialog"
+                  aria-expanded={filtersOpen}
+                  onClick={() => setFiltersOpen(true)}
                 >
                   <SlidersHorizontal size={16} />
+                  {activeFilterCount > 0 && (
+                    <span className="pt-filter-count" aria-hidden="true">
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </button>
               </div>
-              <label className="pt-discover-search">
-                <Search size={16} />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={
-                    discovery === "Pools"
-                      ? "Search pools"
-                      : "Search strategies or creators"
-                  }
-                  aria-label={
-                    discovery === "Pools"
-                      ? "Search mobile pools"
-                      : "Search strategies or creators"
-                  }
-                />
-              </label>
+              <PoolSearch
+                variant="discover"
+                inputRef={mobileSearchRef}
+                value={query}
+                onChange={setQuery}
+                label={
+                  discovery === "Pools"
+                    ? "Search mobile pools"
+                    : "Search strategies or creators"
+                }
+                placeholder={
+                  discovery === "Pools"
+                    ? "Search pools"
+                    : "Search strategies or creators"
+                }
+                onSelectPool={(id) => {
+                  resetDiscoveryFilters();
+                  selectPool(id);
+                }}
+                onSelectCreator={(handle) => {
+                  setQuery("");
+                  setModal({ kind: "creator", handle });
+                }}
+              />
               {discovery === "Pools" ? (
                 <>
                   <div className="pt-categories">
@@ -1809,12 +1883,7 @@ function PoolersTerminal({
                     {!filteredPools.length && (
                       <div className="pt-empty">
                         <strong>No pools found</strong>
-                        <button
-                          onClick={() => {
-                            setQuery("");
-                            setCategory("All");
-                          }}
-                        >
+                        <button onClick={resetDiscoveryFilters}>
                           Clear filters
                         </button>
                       </div>
@@ -1952,12 +2021,7 @@ function PoolersTerminal({
                             ? "No matching strategies from followed creators"
                             : "No strategies found"}
                         </strong>
-                        <button
-                          onClick={() => {
-                            setQuery("");
-                            setStrategyFeed("All");
-                          }}
-                        >
+                        <button onClick={resetDiscoveryFilters}>
                           {strategyFeed === "Following"
                             ? "Browse all creators"
                             : "Clear search"}
@@ -2071,17 +2135,18 @@ function PoolersTerminal({
                     </div>
                   </div>
                   <div className="pt-chart-settings">
-                    <select
-                      aria-label="Chart timeframe"
+                    <BrandSelect
+                      label="Chart timeframe"
                       value={timeframe}
-                      onChange={(event) => setTimeframe(event.target.value)}
-                    >
-                      <option value="5m">5m</option>
-                      <option value="15m">15m</option>
-                      <option value="1H">1h</option>
-                      <option value="4H">4h</option>
-                      <option value="1D">1d</option>
-                    </select>
+                      onChange={setTimeframe}
+                      options={[
+                        { value: "5m", label: "5m" },
+                        { value: "15m", label: "15m" },
+                        { value: "1H", label: "1h" },
+                        { value: "4H", label: "4h" },
+                        { value: "1D", label: "1d" },
+                      ]}
+                    />
                     <div className="pt-chart-unit">
                       {["Price", "MCap"].map((unit) => (
                         <button
@@ -2127,6 +2192,12 @@ function PoolersTerminal({
                   <MarketCandles
                     pool={pool}
                     timeframe={timeframe}
+                    lowerBin={lowerBin}
+                    upperBin={upperBin}
+                    onRangeChange={(lower, upper) => {
+                      setLowerBin(lower);
+                      setUpperBin(upper);
+                    }}
                     lowerPrice={
                       pool.price * Math.pow(1 + pool.binStep / 10000, lowerBin)
                     }
@@ -2808,6 +2879,153 @@ function PoolersTerminal({
           </button>
         </div>
       )}
+      {filtersOpen && (
+        <TerminalDialog
+          className="pt-filter-dialog"
+          onClose={() => setFiltersOpen(false)}
+        >
+          <div className="pt-filter-heading">
+            <h2 id="pt-dialog-title">Discovery filters</h2>
+            <button
+              className="pt-icon-button"
+              aria-label="Close filters"
+              onClick={() => setFiltersOpen(false)}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <p>
+            {discovery === "Pools"
+              ? "Narrow the pool list"
+              : "Find shared strategies"}
+          </p>
+          <fieldset className="pt-filter-section">
+            <legend>Sort by</legend>
+            <div className="pt-filter-options">
+              {discovery === "Pools"
+                ? (
+                    [
+                      { value: "tvl", label: "Liquidity" },
+                      { value: "volume", label: "24h volume" },
+                      { value: "change", label: "Price change" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      aria-pressed={poolSort === option.value}
+                      onClick={() => setPoolSort(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))
+                : (
+                    [
+                      { value: "value", label: "Position value" },
+                      { value: "pnl", label: "PnL" },
+                      { value: "members", label: "Participants" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      aria-pressed={strategySort === option.value}
+                      onClick={() => setStrategySort(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+            </div>
+          </fieldset>
+          {discovery === "Pools" ? (
+            <>
+              <fieldset className="pt-filter-section">
+                <legend>Asset category</legend>
+                <div className="pt-filter-options">
+                  {["All", "Crypto", "Memes", "Stocks"].map((item) => (
+                    <button
+                      key={item}
+                      aria-pressed={category === item}
+                      onClick={() => setCategory(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <label className="pt-filter-section pt-filter-number">
+                Minimum liquidity{" "}
+                <span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1000000000000"
+                    step="1000"
+                    inputMode="decimal"
+                    placeholder="No minimum"
+                    aria-label="Minimum liquidity in USD"
+                    value={minLiquidity}
+                    onChange={(event) => setMinLiquidity(event.target.value)}
+                  />
+                  <span>USD</span>
+                </span>
+              </label>
+            </>
+          ) : (
+            <>
+              <fieldset className="pt-filter-section">
+                <legend>Creators</legend>
+                <div className="pt-filter-options">
+                  {(["All", "Following"] as const).map((item) => (
+                    <button
+                      key={item}
+                      aria-pressed={strategyFeed === item}
+                      onClick={() => setStrategyFeed(item)}
+                    >
+                      {item === "All" ? "All creators" : "Following"}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="pt-filter-section">
+                <legend>Maximum creator fee</legend>
+                <div className="pt-filter-options">
+                  {[
+                    { value: 25, label: "Any fee" },
+                    { value: 10, label: "10%" },
+                    { value: 20, label: "20%" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      aria-pressed={maxCreatorFee === option.value}
+                      onClick={() => setMaxCreatorFee(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </>
+          )}
+          <p className="pt-filter-results" role="status">
+            {discovery === "Pools"
+              ? `${filteredPools.length} ${filteredPools.length === 1 ? "pool matches" : "pools match"}`
+              : `${filteredStrategies.length} ${filteredStrategies.length === 1 ? "strategy matches" : "strategies match"}`}
+          </p>
+          <div className="pt-filter-footer">
+            <button
+              className="pt-secondary-button"
+              onClick={resetDiscoveryFilters}
+            >
+              Reset filters
+            </button>
+            <button
+              className="pt-primary"
+              onClick={() => setFiltersOpen(false)}
+            >
+              Show results <ArrowRight size={15} />
+            </button>
+          </div>
+        </TerminalDialog>
+      )}
       {modal && (
         <TerminalDialog onClose={() => setModal(null)}>
           <button
@@ -3235,9 +3453,11 @@ function PoolersTerminal({
 function TerminalDialog({
   children,
   onClose,
+  className = "",
 }: {
   children: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -3257,7 +3477,7 @@ function TerminalDialog({
   }, []);
   return (
     <dialog
-      className="pt-dialog"
+      className={`pt-dialog ${className}`}
       ref={ref}
       aria-labelledby="pt-dialog-title"
       onCancel={(event) => {
@@ -3265,7 +3485,15 @@ function TerminalDialog({
         onClose();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        )
+          onClose();
       }}
     >
       <div className="pt-dialog-content">{children}</div>
@@ -3333,6 +3561,9 @@ type MarketHistory = {
 function MarketCandles({
   pool,
   timeframe,
+  lowerBin,
+  upperBin,
+  onRangeChange,
   lowerPrice,
   upperPrice,
   chartUnit,
@@ -3340,6 +3571,9 @@ function MarketCandles({
 }: {
   pool: PoolMarket;
   timeframe: string;
+  lowerBin: number;
+  upperBin: number;
+  onRangeChange: (lower: number, upper: number) => void;
   lowerPrice: number;
   upperPrice: number;
   chartUnit: string;
@@ -3348,7 +3582,23 @@ function MarketCandles({
   const descriptionId = useId();
   const canvasId = `${descriptionId}-canvas`;
   const resizeHintId = `${descriptionId}-resize-help`;
+  const boundaryHintId = `${descriptionId}-boundary-help`;
   const canvasRef = useRef<HTMLDivElement>(null);
+  const boundaryDragRef = useRef<{
+    pointerId: number;
+    edge: "lower" | "upper";
+    offsetY: number;
+    startLower: number;
+    startUpper: number;
+    autoScale: boolean;
+  } | null>(null);
+  const boundsRef = useRef({ lower: lowerBin, upper: upperBin });
+  boundsRef.current = { lower: lowerBin, upper: upperBin };
+  const onRangeChangeRef = useRef(onRangeChange);
+  onRangeChangeRef.current = onRangeChange;
+  const [boundaryDragging, setBoundaryDragging] = useState<
+    "lower" | "upper" | null
+  >(null);
   const chartResizeRef = useRef<{
     pointerId: number;
     startY: number;
@@ -3365,9 +3615,14 @@ function MarketCandles({
   const [error, setError] = useState("");
   const [focus, setFocus] = useState<MarketBar | null>(null);
   const [retry, setRetry] = useState(0);
-  const [band, setBand] = useState<{ top: number; height: number } | null>(
-    null,
-  );
+  const [band, setBand] = useState<{
+    top: number;
+    height: number;
+    lowerY: number;
+    upperY: number;
+    lowerOffscreen: boolean;
+    upperOffscreen: boolean;
+  } | null>(null);
   const rangeRef = useRef({ lowerPrice, upperPrice });
   rangeRef.current = { lowerPrice, upperPrice };
   const multiplier =
@@ -3381,6 +3636,128 @@ function MarketCandles({
           maximumFractionDigits: 2,
         }).format(value)
       : formatMoney(value, value < 0.01 ? 8 : value < 1 ? 5 : 2);
+  const publishBoundary = (edge: "lower" | "upper", requested: number) => {
+    const current = boundsRef.current;
+    const next =
+      edge === "lower"
+        ? {
+            ...current,
+            lower: Math.max(
+              -80,
+              Math.min(current.upper - 1, Math.round(requested)),
+            ),
+          }
+        : {
+            ...current,
+            upper: Math.max(
+              current.lower + 1,
+              Math.min(80, Math.round(requested)),
+            ),
+          };
+    if (next.lower === current.lower && next.upper === current.upper) return;
+    boundsRef.current = next;
+    onRangeChangeRef.current(next.lower, next.upper);
+  };
+  const finishBoundaryDrag = (
+    element: HTMLButtonElement,
+    cancelled = false,
+  ) => {
+    const drag = boundaryDragRef.current;
+    if (!drag) return;
+    boundaryDragRef.current = null;
+    setBoundaryDragging(null);
+    if (cancelled) {
+      boundsRef.current = { lower: drag.startLower, upper: drag.startUpper };
+      onRangeChangeRef.current(drag.startLower, drag.startUpper);
+    }
+    seriesRef.current?.priceScale().applyOptions({ autoScale: drag.autoScale });
+    if (element.hasPointerCapture(drag.pointerId))
+      element.releasePointerCapture(drag.pointerId);
+    window.requestAnimationFrame(renderBand);
+  };
+  const beginBoundaryDrag = (
+    event: RangePointerEvent<HTMLButtonElement>,
+    edge: "lower" | "upper",
+  ) => {
+    const series = seriesRef.current;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (event.button !== 0 || !series || !rect || boundaryDragRef.current)
+      return;
+    const coordinate = series.priceToCoordinate(
+      rangeRef.current[edge === "lower" ? "lowerPrice" : "upperPrice"] *
+        multiplier,
+    );
+    if (coordinate === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const scale = series.priceScale();
+    boundaryDragRef.current = {
+      pointerId: event.pointerId,
+      edge,
+      offsetY: event.clientY - rect.top - coordinate,
+      startLower: boundsRef.current.lower,
+      startUpper: boundsRef.current.upper,
+      autoScale: scale.options().autoScale,
+    };
+    // Hold the vertical scale during the gesture so a moving bound cannot rescale itself.
+    scale.applyOptions({ autoScale: false });
+    event.currentTarget.focus({ preventScroll: true });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setBoundaryDragging(edge);
+  };
+  const moveBoundaryDrag = (event: RangePointerEvent<HTMLButtonElement>) => {
+    const drag = boundaryDragRef.current;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const series = seriesRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || !rect || !series) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const displayedPrice = series.coordinateToPrice(
+      event.clientY - rect.top - drag.offsetY,
+    );
+    if (displayedPrice === null || displayedPrice <= 0) return;
+    const usdPrice = Number(displayedPrice) / multiplier;
+    const bin =
+      Math.log(usdPrice / pool.price) / Math.log(1 + pool.binStep / 10000);
+    if (Number.isFinite(bin)) publishBoundary(drag.edge, bin);
+  };
+  const boundaryKeyboard = (
+    event: RangeKeyboardEvent<HTMLButtonElement>,
+    edge: "lower" | "upper",
+  ) => {
+    if (event.key === "Escape" && boundaryDragRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      finishBoundaryDrag(event.currentTarget, true);
+      return;
+    }
+    const current = boundsRef.current;
+    const increment = event.shiftKey ? 10 : 1;
+    const bin = edge === "lower" ? current.lower : current.upper;
+    const next =
+      event.key === "ArrowUp" || event.key === "ArrowRight"
+        ? bin + increment
+        : event.key === "ArrowDown" || event.key === "ArrowLeft"
+          ? bin - increment
+          : event.key === "PageUp"
+            ? bin + 10
+            : event.key === "PageDown"
+              ? bin - 10
+              : event.key === "Home"
+                ? edge === "lower"
+                  ? -80
+                  : current.lower + 1
+                : event.key === "End"
+                  ? edge === "lower"
+                    ? current.upper - 1
+                    : 80
+                  : null;
+    if (next !== null) {
+      event.preventDefault();
+      event.stopPropagation();
+      publishBoundary(edge, next);
+    }
+  };
   const clampChartHeight = (height: number) =>
     Math.max(340, Math.min(1000, Math.round(height)));
   const finishChartResize = (element: HTMLDivElement, cancelled = false) => {
@@ -3480,10 +3857,26 @@ function MarketCandles({
     }
     const height = canvasRef.current?.clientHeight || 0;
     const top = Math.max(0, Math.min(lower, upper));
-    setBand({
+    const lastMarkerY = Math.max(22, height - 48);
+    const next = {
       top,
       height: Math.max(0, Math.min(height, Math.max(lower, upper)) - top),
-    });
+      lowerY: Math.max(22, Math.min(lastMarkerY, lower)),
+      upperY: Math.max(22, Math.min(lastMarkerY, upper)),
+      lowerOffscreen: lower < 22 || lower > lastMarkerY,
+      upperOffscreen: upper < 22 || upper > lastMarkerY,
+    };
+    setBand((previous) =>
+      previous &&
+      Math.abs(previous.top - next.top) < 0.1 &&
+      Math.abs(previous.height - next.height) < 0.1 &&
+      Math.abs(previous.lowerY - next.lowerY) < 0.1 &&
+      Math.abs(previous.upperY - next.upperY) < 0.1 &&
+      previous.lowerOffscreen === next.lowerOffscreen &&
+      previous.upperOffscreen === next.upperOffscreen
+        ? previous
+        : next,
+    );
   };
   useEffect(() => {
     const element = canvasRef.current;
@@ -3614,13 +4007,27 @@ function MarketCandles({
       }
       renderBand();
     };
+    let refreshFrame = 0;
+    const scheduleRefresh = () => {
+      window.cancelAnimationFrame(refreshFrame);
+      refreshFrame = window.requestAnimationFrame(refresh);
+    };
     chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
+    element.addEventListener("pointermove", scheduleRefresh, { passive: true });
+    element.addEventListener("pointerup", scheduleRefresh, { passive: true });
+    element.addEventListener("wheel", scheduleRefresh, { passive: true });
     const resize = new ResizeObserver(() =>
       window.requestAnimationFrame(refresh),
     );
     resize.observe(element);
     window.requestAnimationFrame(refresh);
     return () => {
+      boundaryDragRef.current = null;
+      setBoundaryDragging(null);
+      window.cancelAnimationFrame(refreshFrame);
+      element.removeEventListener("pointermove", scheduleRefresh);
+      element.removeEventListener("pointerup", scheduleRefresh);
+      element.removeEventListener("wheel", scheduleRefresh);
       resize.disconnect();
       chart.unsubscribeCrosshairMove(handleCrosshair);
       chart.remove();
@@ -3639,7 +4046,7 @@ function MarketCandles({
         color: "#9e85ea",
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: false,
         title: "Min",
       }),
       series.createPriceLine({
@@ -3647,7 +4054,7 @@ function MarketCandles({
         color: "#59b7c9",
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: false,
         title: "Max",
       }),
     ];
@@ -3725,11 +4132,74 @@ function MarketCandles({
           data-range-max={upperPrice}
         />
         {band && bars.length > 0 && (
-          <div
-            className="pt-chart-selected-band"
-            style={{ top: band.top, height: band.height }}
-            aria-hidden="true"
-          />
+          <>
+            <div
+              className="pt-chart-selected-band"
+              style={{ top: band.top, height: band.height }}
+              aria-hidden="true"
+            />
+            {(["lower", "upper"] as const).map((edge) => {
+              const isLower = edge === "lower";
+              const value = isLower ? lowerBin : upperBin;
+              const offscreen = isLower
+                ? band.lowerOffscreen
+                : band.upperOffscreen;
+              return (
+                <button
+                  key={edge}
+                  type="button"
+                  role="slider"
+                  aria-label={
+                    isLower ? "Minimum chart price" : "Maximum chart price"
+                  }
+                  aria-describedby={boundaryHintId}
+                  aria-orientation="vertical"
+                  aria-valuemin={isLower ? -80 : lowerBin + 1}
+                  aria-valuemax={isLower ? upperBin - 1 : 80}
+                  aria-valuenow={value}
+                  aria-valuetext={`${chartPrice((isLower ? lowerPrice : upperPrice) * multiplier)} USD${chartUnit === "MCap" ? " market cap" : ""}; bin ${value}${offscreen ? "; outside the visible price scale" : ""}`}
+                  className={`pt-chart-boundary ${isLower ? "is-lower" : "is-upper"} ${boundaryDragging === edge ? "is-dragging" : ""}`}
+                  style={{
+                    top: isLower ? band.lowerY : band.upperY,
+                    right:
+                      isLower && Math.abs(band.lowerY - band.upperY) < 44
+                        ? 104
+                        : 0,
+                  }}
+                  data-offscreen={offscreen || undefined}
+                  title={`${isLower ? "Minimum" : "Maximum"} boundary · drag vertically or use arrow keys${offscreen ? " · outside visible price scale" : ""}`}
+                  disabled={
+                    boundaryDragging !== null && boundaryDragging !== edge
+                  }
+                  onPointerDown={(event) => beginBoundaryDrag(event, edge)}
+                  onPointerMove={moveBoundaryDrag}
+                  onPointerUp={(event) => {
+                    if (boundaryDragRef.current?.pointerId === event.pointerId)
+                      finishBoundaryDrag(event.currentTarget);
+                  }}
+                  onPointerCancel={(event) => {
+                    if (boundaryDragRef.current?.pointerId === event.pointerId)
+                      finishBoundaryDrag(event.currentTarget, true);
+                  }}
+                  onLostPointerCapture={(event) => {
+                    if (boundaryDragRef.current?.pointerId === event.pointerId)
+                      finishBoundaryDrag(event.currentTarget, true);
+                  }}
+                  onKeyDown={(event) => boundaryKeyboard(event, edge)}
+                >
+                  <span className="pt-chart-boundary-label">
+                    <span>{isLower ? "Min" : "Max"}</span>
+                    <strong>
+                      {chartPrice(
+                        (isLower ? lowerPrice : upperPrice) * multiplier,
+                      )}
+                    </strong>
+                    <span aria-hidden="true">↕</span>
+                  </span>
+                </button>
+              );
+            })}
+          </>
         )}
         {!history && !error && (
           <div className="pt-chart-loading">Loading chart</div>
@@ -3743,6 +4213,12 @@ function MarketCandles({
           </div>
         )}
       </div>
+      <span className="bin-range-sr-only" id={boundaryHintId}>
+        Drag a price marker vertically to adjust its liquidity boundary. Arrow
+        up increases the price by one bin; arrow down decreases it. Hold Shift
+        for ten bins. Home and End select the available limits. Escape cancels a
+        drag.
+      </span>
       <div
         className={`pt-chart-resize ${chartResizing ? "is-dragging" : ""}`}
         role="separator"
@@ -4273,6 +4749,14 @@ function BinRangeControl({
         <BinControlPriceField
           label="Min price"
           value={priceAtBin(lower)}
+          bin={lower}
+          minBin={RANGE_FIRST_BIN}
+          maxBin={upper - 1}
+          unitLabel={unitLabel}
+          onBinChange={(requested) => {
+            const bin = publish("lower", requested);
+            return { bin, value: binControlPriceFormat(priceAtBin(bin)) };
+          }}
           percentage={(Math.pow(rate, lower) - 1) * 100}
           canDecrease={lower > RANGE_FIRST_BIN}
           canIncrease={lower < upper - 1}
@@ -4286,6 +4770,14 @@ function BinRangeControl({
         <BinControlPriceField
           label="Max price"
           value={priceAtBin(upper)}
+          bin={upper}
+          minBin={lower + 1}
+          maxBin={RANGE_LAST_BIN}
+          unitLabel={unitLabel}
+          onBinChange={(requested) => {
+            const bin = publish("upper", requested);
+            return { bin, value: binControlPriceFormat(priceAtBin(bin)) };
+          }}
           percentage={(Math.pow(rate, upper) - 1) * 100}
           canDecrease={upper > lower + 1}
           canIncrease={upper < RANGE_LAST_BIN}
@@ -4307,6 +4799,11 @@ function BinRangeControl({
 function BinControlPriceField({
   label,
   value,
+  bin,
+  minBin,
+  maxBin,
+  unitLabel,
+  onBinChange,
   percentage,
   canDecrease,
   canIncrease,
@@ -4315,6 +4812,11 @@ function BinControlPriceField({
 }: {
   label: string;
   value: number;
+  bin: number;
+  minBin: number;
+  maxBin: number;
+  unitLabel: string;
+  onBinChange: (bin: number) => { bin: number; value: string };
   percentage: number;
   canDecrease: boolean;
   canIncrease: boolean;
@@ -4325,7 +4827,16 @@ function BinControlPriceField({
   const [draft, setDraft] = useState(binControlPriceFormat(value));
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState("");
+  const [dragging, setDragging] = useState(false);
   const cancelRef = useRef(false);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startBin: number;
+    needsBaseline: boolean;
+  } | null>(null);
+  const controlsRef = useRef({ bin, minBin, maxBin, onBinChange });
+  controlsRef.current = { bin, minBin, maxBin, onBinChange };
   const formatted = binControlPriceFormat(value);
   useEffect(() => {
     if (!focused) setDraft(formatted);
@@ -4334,10 +4845,122 @@ function BinControlPriceField({
     setDraft(onStep(delta));
     setError("");
   };
+  const setDragBin = (requested: number) => {
+    const controls = controlsRef.current;
+    const result = controls.onBinChange(
+      binControlClamp(Math.round(requested), controls.minBin, controls.maxBin),
+    );
+    controls.bin = result.bin;
+    setDraft(result.value);
+    setError("");
+  };
+  const finishDrag = (element: HTMLButtonElement, cancelled = false) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const initialBin = drag.needsBaseline
+      ? controlsRef.current.bin
+      : drag.startBin;
+    dragRef.current = null;
+    setDragging(false);
+    if (cancelled) setDragBin(initialBin);
+    if (element.hasPointerCapture(drag.pointerId))
+      element.releasePointerCapture(drag.pointerId);
+  };
 
   return (
     <div className="bin-price-field">
-      <label htmlFor={id}>{label}</label>
+      <div className="bin-price-heading">
+        <label htmlFor={id}>{label}</label>
+        <button
+          type="button"
+          role="slider"
+          aria-label={
+            label === "Min price" ? "Drag minimum price" : "Drag maximum price"
+          }
+          aria-orientation="horizontal"
+          aria-valuemin={minBin}
+          aria-valuemax={maxBin}
+          aria-valuenow={bin}
+          aria-valuetext={`${formatted} ${unitLabel}, bin ${bin}`}
+          aria-describedby={`${id}-drag-help`}
+          title="Drag left or right to adjust price"
+          className={`bin-price-drag ${dragging ? "is-dragging" : ""}`}
+          onPointerDown={(event) => {
+            if (
+              (event.pointerType === "mouse" && event.button !== 0) ||
+              dragRef.current
+            )
+              return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.focus({ preventScroll: true });
+            dragRef.current = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startBin: controlsRef.current.bin,
+              needsBaseline: true,
+            };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            setDragging(true);
+          }}
+          onPointerMove={(event) => {
+            const drag = dragRef.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            event.preventDefault();
+            if (drag.needsBaseline) {
+              drag.startBin = controlsRef.current.bin;
+              drag.needsBaseline = false;
+            }
+            setDragBin(
+              drag.startBin + Math.round((event.clientX - drag.startX) / 4),
+            );
+          }}
+          onPointerUp={(event) => {
+            if (dragRef.current?.pointerId === event.pointerId)
+              finishDrag(event.currentTarget);
+          }}
+          onPointerCancel={(event) => {
+            if (dragRef.current?.pointerId === event.pointerId)
+              finishDrag(event.currentTarget, true);
+          }}
+          onLostPointerCapture={(event) => {
+            if (dragRef.current?.pointerId === event.pointerId)
+              finishDrag(event.currentTarget, true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && dragRef.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              finishDrag(event.currentTarget, true);
+              return;
+            }
+            const controls = controlsRef.current;
+            const increment = event.shiftKey ? 10 : 1;
+            const next =
+              event.key === "ArrowLeft" || event.key === "ArrowDown"
+                ? controls.bin - increment
+                : event.key === "ArrowRight" || event.key === "ArrowUp"
+                  ? controls.bin + increment
+                  : event.key === "Home"
+                    ? controls.minBin
+                    : event.key === "End"
+                      ? controls.maxBin
+                      : null;
+            if (next !== null) {
+              event.preventDefault();
+              setDragBin(next);
+            }
+          }}
+        >
+          <Menu size={12} aria-hidden="true" />
+          <span>Drag</span>
+        </button>
+      </div>
+      <span className="bin-range-sr-only" id={`${id}-drag-help`}>
+        Drag left or right to change price by one bin every four pixels. Arrow
+        keys change one bin, Shift changes ten, Home and End move to the
+        available bounds. Escape cancels a drag.
+      </span>
       <div className="bin-price-input-row">
         <button
           type="button"
@@ -4541,6 +5164,437 @@ function FeeControl({
         <span>5%</span>
         <span>25%</span>
       </div>
+    </div>
+  );
+}
+
+function PoolSearch({
+  value,
+  onChange,
+  onSelectPool,
+  onSelectCreator,
+  inputRef,
+  variant = "global",
+  label,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelectPool: (id: string) => void;
+  onSelectCreator: (handle: string) => void;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  variant?: "global" | "discover";
+  label: string;
+  placeholder: string;
+}) {
+  const id = useId();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const fieldRef = inputRef || localInputRef;
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const term = value.trim().replace(/^@/, "").toLowerCase();
+  const results = [
+    ...MARKETS.filter((item) =>
+      `${item.pair} ${item.symbol} ${item.address}`
+        .toLowerCase()
+        .includes(term),
+    )
+      .slice(0, 5)
+      .map((item) => ({
+        key: item.id,
+        kind: "pool" as const,
+        title: item.pair,
+        description: `${item.category} · ${item.tvl} liquidity`,
+        pool: item,
+        avatar: "",
+      })),
+    ...CREATORS.filter((creator) => creator.toLowerCase().includes(term))
+      .slice(0, 3)
+      .map((creator) => ({
+        key: creator,
+        kind: "creator" as const,
+        title: `@${creator}`,
+        description: `${STRATEGIES.filter((item) => item.creator === creator).length} shared strategies`,
+        pool: null,
+        avatar:
+          STRATEGIES.find((item) => item.creator === creator)?.avatar ||
+          "/creators/default.svg",
+      })),
+  ];
+  const selected = Math.min(active, Math.max(0, results.length - 1));
+  const pick = (index: number) => {
+    const item = results[index];
+    if (!item) return;
+    setOpen(false);
+    if (item.kind === "pool") onSelectPool(item.key);
+    else onSelectCreator(item.key);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside, true);
+    return () => document.removeEventListener("pointerdown", outside, true);
+  }, [open]);
+  useEffect(() => {
+    if (open)
+      document
+        .getElementById(`${id}-option-${selected}`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [open, selected, id]);
+  return (
+    <div className={`pt-search-combobox is-${variant}`} ref={wrapperRef}>
+      <label
+        className={
+          variant === "global" ? "pt-global-search" : "pt-discover-search"
+        }
+      >
+        <Search size={16} aria-hidden="true" />
+        <input
+          ref={fieldRef}
+          value={value}
+          role="combobox"
+          aria-label={label}
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={open ? `${id}-listbox` : undefined}
+          aria-activedescendant={
+            open && results.length ? `${id}-option-${selected}` : undefined
+          }
+          aria-describedby={`${id}-hint`}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          onFocus={() => {
+            setActive(0);
+            setOpen(true);
+          }}
+          onBlur={(event) => {
+            if (!wrapperRef.current?.contains(event.relatedTarget as Node))
+              setOpen(false);
+          }}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (
+              (event.ctrlKey || event.metaKey) &&
+              event.key.toLowerCase() === "k"
+            ) {
+              setOpen(true);
+              return;
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              setOpen(false);
+            } else if (event.key === "Tab") setOpen(false);
+            else if (
+              (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+              results.length
+            ) {
+              event.preventDefault();
+              setOpen(true);
+              setActive(
+                open
+                  ? (selected +
+                      (event.key === "ArrowDown" ? 1 : results.length - 1)) %
+                      results.length
+                  : event.key === "ArrowDown"
+                    ? 0
+                    : results.length - 1,
+              );
+            } else if (
+              open &&
+              (event.key === "Home" || event.key === "End") &&
+              results.length
+            ) {
+              event.preventDefault();
+              setActive(event.key === "Home" ? 0 : results.length - 1);
+            } else if (open && event.key === "Enter" && results.length) {
+              event.preventDefault();
+              pick(selected);
+            }
+          }}
+        />
+        {variant === "global" && <kbd>⌘ K</kbd>}
+      </label>
+      <span className="bin-range-sr-only" id={`${id}-hint`}>
+        Use arrow keys to review suggestions, Enter to open one, and Escape to
+        close.
+      </span>
+      {open && (
+        <div className="pt-search-menu">
+          <div className="pt-search-menu-heading">
+            Quick search <span aria-hidden="true">↑ ↓ Enter</span>
+          </div>
+          <div
+            role="listbox"
+            id={`${id}-listbox`}
+            aria-label="Search suggestions"
+          >
+            {results.map((item, index) => (
+              <button
+                key={`${item.kind}-${item.key}`}
+                type="button"
+                role="option"
+                id={`${id}-option-${index}`}
+                aria-selected={selected === index}
+                tabIndex={-1}
+                className={`pt-search-option ${selected === index ? "is-active" : ""}`}
+                onPointerDown={(event) => {
+                  if (event.pointerType === "mouse") event.preventDefault();
+                }}
+                onMouseMove={() => setActive(index)}
+                onClick={() => pick(index)}
+              >
+                {item.pool ? (
+                  <TokenPair pool={item.pool} />
+                ) : (
+                  <img className="pt-search-avatar" src={item.avatar} alt="" />
+                )}
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.description}</small>
+                </span>
+                <span className="pt-search-kind">
+                  {item.kind === "pool" ? "Pool" : "Creator"}
+                </span>
+              </button>
+            ))}
+          </div>
+          {!results.length && (
+            <div className="pt-search-no-results" role="status">
+              No pools or creators found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BrandSelect({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  id?: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const generatedId = useId();
+  const triggerId = id || `${generatedId}-trigger`;
+  const listboxId = `${triggerId}-options`;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const typeaheadRef = useRef({ text: "", time: 0 });
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+  const [position, setPosition] = useState({
+    left: 8,
+    top: 8,
+    width: 120,
+    maxHeight: 280,
+  });
+
+  const measurePosition = (
+    desiredHeight = Math.min(280, options.length * 44 + 8),
+  ) => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return position;
+    const width = Math.min(Math.max(rect.width, 120), window.innerWidth - 16);
+    const below = window.innerHeight - rect.bottom - 8;
+    const above = rect.top - 8;
+    const flip = below < desiredHeight && above > below;
+    const maxHeight = Math.max(44, Math.min(280, (flip ? above : below) - 6));
+    return {
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+      top: flip
+        ? Math.max(8, rect.top - 6 - Math.min(desiredHeight, maxHeight))
+        : rect.bottom + 6,
+      width,
+      maxHeight,
+    };
+  };
+  const openMenu = (index = selectedIndex) => {
+    if (!options.length) return;
+    setPosition(measurePosition());
+    setActiveIndex(index);
+    setOpen(true);
+  };
+  const selectOption = (index: number) => {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setOpen(false);
+    triggerRef.current?.focus({ preventScroll: true });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect || rect.bottom < 0 || rect.top > window.innerHeight) {
+        setOpen(false);
+        return;
+      }
+      setPosition(
+        measurePosition(Math.min(menuRef.current?.scrollHeight || 280, 280)),
+      );
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    document.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      document.removeEventListener("scroll", reposition, true);
+    };
+  }, [open, options.length]);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !triggerRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      )
+        setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside, true);
+    return () => document.removeEventListener("pointerdown", outside, true);
+  }, [open]);
+  useEffect(() => {
+    if (open)
+      menuRef.current
+        ?.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [open, activeIndex]);
+
+  return (
+    <div className="brand-select">
+      <button
+        ref={triggerRef}
+        id={triggerId}
+        className="brand-select-trigger"
+        type="button"
+        role="combobox"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={open ? `${listboxId}-${activeIndex}` : undefined}
+        disabled={!options.length}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={(event) => {
+          if (event.altKey || event.ctrlKey || event.metaKey) return;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            if (!open) openMenu();
+            else
+              setActiveIndex((current) =>
+                Math.max(
+                  0,
+                  Math.min(
+                    options.length - 1,
+                    current + (event.key === "ArrowDown" ? 1 : -1),
+                  ),
+                ),
+              );
+          } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            const index = event.key === "Home" ? 0 : options.length - 1;
+            if (!open) openMenu(index);
+            else setActiveIndex(index);
+          } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            if (open) selectOption(activeIndex);
+            else openMenu();
+          } else if (event.key === "Escape" && open) {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(false);
+          } else if (event.key === "Tab") {
+            setOpen(false);
+          } else if (event.key.length === 1 && /\S/.test(event.key)) {
+            event.preventDefault();
+            const now = Date.now();
+            const previous = typeaheadRef.current;
+            let text =
+              now - previous.time < 700
+                ? previous.text + event.key.toLowerCase()
+                : event.key.toLowerCase();
+            let index = options.findIndex((option) =>
+              option.label.toLowerCase().startsWith(text),
+            );
+            if (index < 0) {
+              text = event.key.toLowerCase();
+              index = options.findIndex((_, offset) =>
+                options[(activeIndex + offset + 1) % options.length].label
+                  .toLowerCase()
+                  .startsWith(text),
+              );
+              if (index >= 0)
+                index = (activeIndex + index + 1) % options.length;
+            }
+            typeaheadRef.current = { text, time: now };
+            if (index >= 0) {
+              if (!open) openMenu(index);
+              else setActiveIndex(index);
+            }
+          }
+        }}
+      >
+        <span className="brand-select-value">
+          {options.find((option) => option.value === value)?.label || value}
+        </span>
+        <ChevronDown size={14} aria-hidden="true" />
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            id={listboxId}
+            className="brand-select-menu"
+            role="listbox"
+            aria-label={`${label} options`}
+            style={{ position: "fixed", ...position }}
+          >
+            {options.map((option, index) => (
+              <div
+                id={`${listboxId}-${index}`}
+                key={option.value}
+                className={`brand-select-option ${index === activeIndex ? "is-active" : ""} ${option.value === value ? "is-selected" : ""}`}
+                role="option"
+                aria-selected={option.value === value}
+                data-option-index={index}
+                onPointerDown={(event) => {
+                  if (event.pointerType === "mouse") event.preventDefault();
+                }}
+                onPointerMove={() => setActiveIndex(index)}
+                onClick={() => selectOption(index)}
+              >
+                <span>{option.label}</span>
+                {option.value === value && (
+                  <Check size={14} aria-hidden="true" />
+                )}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
