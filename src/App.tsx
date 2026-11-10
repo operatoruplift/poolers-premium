@@ -5465,7 +5465,7 @@ function BrandSelect({
   }, [open, options.length]);
   useEffect(() => {
     if (!open) return;
-    const outside = (event: PointerEvent) => {
+    const outside = (event: Event) => {
       const target = event.target as Node;
       if (
         !triggerRef.current?.contains(target) &&
@@ -5474,7 +5474,11 @@ function BrandSelect({
         setOpen(false);
     };
     document.addEventListener("pointerdown", outside, true);
-    return () => document.removeEventListener("pointerdown", outside, true);
+    document.addEventListener("focusin", outside, true);
+    return () => {
+      document.removeEventListener("pointerdown", outside, true);
+      document.removeEventListener("focusin", outside, true);
+    };
   }, [open]);
   useEffect(() => {
     if (open)
