@@ -49,7 +49,7 @@ New position activity carries an explicit pool ID, so history remains scoped cor
 
 The purple P is rendered as an inline vector in the interface. The matching standalone asset is `public/poolers-mark.svg`.
 
-Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Lavender marks keyboard focus and selection; orange remains an accent fill/text color. Secondary actions stay neutral.
+Primary actions share lavender, purple, and blue gradient tokens in `src/index.css`. Entry controls keep their normal borders without focus outlines, halos, or border-color changes. Lavender remains in menu selection and navigation controls; orange remains an accent fill/text color. Secondary actions stay neutral.
 
 ## Review and attribution
 

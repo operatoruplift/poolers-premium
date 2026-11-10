@@ -42,14 +42,17 @@
   button {
     cursor: pointer;
   }
-  button:focus-visible,
+  button:not(.brand-select-trigger):focus-visible,
   a:focus-visible,
   select:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
   video:focus-visible {
     outline: 2px solid var(--poolers-focus);
     outline-offset: 5px;
+  }
+  input:focus,
+  textarea:focus {
+    outline: none;
+    box-shadow: none;
   }
   html {
     scroll-behavior: smooth;
@@ -217,7 +220,6 @@
   cursor: pointer;
 }
 .signup-options label.selected {
-  border-color: #b297f3;
   background: #a78bfa12;
 }
 .signup-options input {
@@ -436,10 +438,8 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
-.pt-app button:focus-visible,
-.pt-app input:focus-visible,
-.pt-app select:focus-visible,
-.pt-app textarea:focus-visible {
+.pt-app button:not(.brand-select-trigger):focus-visible,
+.pt-app select:focus-visible {
   outline: 2px solid var(--poolers-focus);
   outline-offset: 3px;
 }
@@ -1743,9 +1743,7 @@
 .pt-dialog textarea {
   font: inherit;
 }
-.pt-dialog button:focus-visible,
-.pt-dialog input:focus-visible,
-.pt-dialog textarea:focus-visible {
+.pt-dialog button:not(.brand-select-trigger):focus-visible {
   outline: 2px solid var(--poolers-focus);
   outline-offset: 3px;
 }
@@ -2803,10 +2801,6 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   border-radius: 3px;
-}
-.bin-price-input-row > input:focus-visible {
-  outline: 2px solid var(--poolers-focus);
-  outline-offset: 1px;
 }
 .bin-price-change {
   display: block;
@@ -4142,11 +4136,6 @@
 .pt-pool-card {
   border-radius: 10px;
 }
-.pt-global-search:focus-within,
-.pt-amount-box:focus-within,
-.pt-discover-search:focus-within {
-  border-color: var(--poolers-focus);
-}
 .pt-icon-button,
 .pt-chart-settings select,
 .pt-chart-unit > button,
@@ -4896,14 +4885,10 @@
   }
 }
 
-/* One brand focus treatment; composite search fields own their focus ring. */
+/* Entry fields keep their normal borders without focus outlines or rings. */
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: var(--poolers-focus);
-}
-.pt-global-search:focus-within,
-.pt-discover-search:focus-within {
-  box-shadow: 0 0 0 2px #bba6ff16;
 }
 .pt-app .pt-global-search input:focus,
 .pt-app .pt-global-search input:focus-visible,
@@ -4937,14 +4922,10 @@ input[type="radio"] {
 }
 .brand-select-trigger:hover {
   background: #1b1827;
-  border-color: #655775;
 }
-.brand-select-trigger:focus-visible {
-  outline: 2px solid var(--poolers-focus);
-  outline-offset: 3px;
-}
-.brand-select-trigger[aria-expanded="true"] {
-  border-color: #aa91ed;
+.brand-select-trigger:focus {
+  outline: none;
+  box-shadow: none;
 }
 .brand-select-trigger[aria-expanded="true"] > svg {
   transform: rotate(180deg);
@@ -5151,12 +5132,10 @@ input[type="radio"] {
   font-size: 12px;
 }
 .pt-filter-options > button[aria-pressed="true"] {
-  border-color: #8b72bb;
   background: #28223e;
   color: #ede4ff;
 }
 .pt-filter-options > button:hover {
-  border-color: #aa91ed;
   color: #f3edff;
 }
 .pt-filter-number > span {
@@ -5185,10 +5164,6 @@ input[type="radio"] {
 .pt-filter-number > span > span {
   color: #b6adc8;
   font-size: 12px;
-}
-.pt-filter-number > span:focus-within {
-  border-color: var(--poolers-focus);
-  box-shadow: 0 0 0 2px #bba6ff16;
 }
 .pt-app .pt-filter-number input:focus-visible {
   outline: none;

@@ -17,3 +17,9 @@ This change responds to the user's screenshots of orange search outlines, an ope
 TypeScript/Vite build passed. Existing fee, bin, distribution, chart, wallet-state, profile, portfolio, responsive, landing-scroll, and reduced-motion regressions passed. Dedicated tests verified search selection and recovery, creator navigation, themed timeframe and signup menus, filter application/reset/sort, mobile touch use, direct field/chart drags, cancellation, close-boundary access, market-cap/USD/quote conversion, and synchronized histogram/field/chart state.
 
 Automated WCAG 2 A/AA and 2.1 AA checks found no violations in the seven baseline states and five additional states: search results, empty search, timeframe menu, pool filter dialog, and signup selection. This is an automated check, not complete accessibility certification. The original market snapshots and local-wallet boundaries are unchanged.
+
+## Entry-field focus refinement
+
+Following the user's subsequent instruction, entry fields and custom select triggers no longer add any focus outline or shadow. Search, amount, and filter-input wrappers retain their normal border colors on focus; dropdown triggers retain their normal border while open. Signup focus-ring utilities and selected choice-card border highlights were removed. Menu selections continue to use filled backgrounds/checkmarks.
+
+The production build passed. Rendered checks verified no focus outline/shadow and unchanged wrapper borders across desktop search, amount and Min price fields, open timeframe selectors, filter inputs, signup fields, and mobile search.

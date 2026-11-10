@@ -5683,7 +5683,7 @@ function InputGroup({
         required
         maxLength={type === "password" ? 128 : 254}
         pattern={type === "text" ? ".*\\S.*" : undefined}
-        className={`bg-brand-gray border-none rounded-xl h-11 px-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 outline-none w-full ${name === "password" ? "pr-12" : ""}`}
+        className={`bg-brand-gray border-none rounded-xl h-11 px-4 text-white placeholder:text-white/20 outline-none w-full ${name === "password" ? "pr-12" : ""}`}
       />
     </div>
   );
