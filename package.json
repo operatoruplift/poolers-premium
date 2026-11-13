@@ -2,6 +2,12 @@
   "name": "poolers-premium",
   "private": true,
   "version": "1.0.0",
+  "description": "Redesign of the Poolers app, a Solana liquidity-provider workspace: landing, terminal, portfolio and profile on captured market data and local state.",
+  "homepage": "https://poolers-premium.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/operatoruplift/poolers-premium.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
